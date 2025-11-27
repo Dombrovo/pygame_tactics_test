@@ -22,6 +22,7 @@ import pygame
 import sys
 import config
 from ui.title_screen import TitleScreen
+from combat.battle_screen import BattleScreen
 
 
 def main():
@@ -115,10 +116,16 @@ def main():
 
     if next_screen == "new_game":
         print("Starting new game...")
-        # TODO: Launch tactical battle (Phase 1 MVP)
-        # battle = BattleScreen(screen)
-        # battle.run(clock)
-        print("Tactical battle not yet implemented - returning to title")
+        # Launch tactical battle (Phase 1 MVP)
+        battle = BattleScreen(screen)
+        battle_result = battle.run(clock)
+
+        # Handle battle result
+        if battle_result == "victory":
+            print("VICTORY! Returning to title screen...")
+        elif battle_result == "defeat":
+            print("DEFEAT! Returning to title screen...")
+        # If user pressed ESC, battle_result will be "title"
 
     elif next_screen == "continue":
         print("Loading saved game...")

@@ -42,6 +42,14 @@ For detailed understanding of specific systems:
    - Rendering pipeline
    - State transitions and timing breakdown
 
+5. **[Grid and Battle System](05_grid_and_battle_system.md)** ⭐ NEW
+   - Grid system (10x10 battlefield, tiles, cover)
+   - Entity system (Units, Investigators, Enemies)
+   - Battle screen (rendering, turn management, controls)
+   - Coordinate conversion (pixel ↔ grid)
+   - Distance calculations and neighbor finding
+   - Current limitations and next steps
+
 ---
 
 ## Quick Reference
@@ -52,10 +60,13 @@ For detailed understanding of specific systems:
 |---------------|---------------|
 | Change button width | [config.py](../config.py) line 109 |
 | Change screen resolution | [config.py](../config.py) lines 20-21 |
+| Change grid/tile size | [config.py](../config.py) lines 94-95 |
 | Understand how buttons work | [03_ui_components.md](03_ui_components.md) |
 | Understand the game loop | [01_pygame_fundamentals.md](01_pygame_fundamentals.md) |
+| Understand the battle system | [05_grid_and_battle_system.md](05_grid_and_battle_system.md) |
 | See complete click flow | [04_data_flow.md](04_data_flow.md#mouse-click-flow---detailed) |
 | Add a new menu option | [02_architecture_overview.md](02_architecture_overview.md#adding-a-new-screen) |
+| Add a new enemy type | [05_grid_and_battle_system.md](05_grid_and_battle_system.md#enemy-classes) |
 
 ### Code Files (with extensive comments)
 
@@ -65,6 +76,11 @@ All code files have been extensively commented:
 - **[main.py](../main.py)** - Entry point with step-by-step comments
 - **[ui/ui_elements.py](../ui/ui_elements.py)** - UI components with detailed explanations
 - **[ui/title_screen.py](../ui/title_screen.py)** - Title screen with positioning math explained
+- **[combat/grid.py](../combat/grid.py)** - Grid and Tile system with cover mechanics
+- **[combat/battle_screen.py](../combat/battle_screen.py)** - Battle UI and rendering
+- **[entities/unit.py](../entities/unit.py)** - Base unit class with health/sanity
+- **[entities/investigator.py](../entities/investigator.py)** - Player units
+- **[entities/enemy.py](../entities/enemy.py)** - Enemy types (Cultist, Hound)
 
 ---
 
@@ -76,23 +92,26 @@ All code files have been extensively commented:
 2. Run the game and observe: `uv run python main.py`
 3. Read [main.py](../main.py) with comments - See initialization
 4. Read [Architecture Overview](02_architecture_overview.md) - Understand structure
-5. Experiment: Change colors in [config.py](../config.py)
+5. Click "New Game" and explore the battle screen
+6. Read [Grid and Battle System](05_grid_and_battle_system.md) - Understand the grid
+7. Experiment: Change colors in [config.py](../config.py)
 
 ### Intermediate Path (Some Pygame experience)
 
 1. Skim [Pygame Fundamentals](01_pygame_fundamentals.md) - Refresh concepts
 2. Read [Architecture Overview](02_architecture_overview.md) - See our approach
 3. Read [UI Components](03_ui_components.md) - Learn our UI system
-4. Read [title_screen.py](../ui/title_screen.py) - See complete implementation
-5. Experiment: Add a new button to the title screen
+4. Read [Grid and Battle System](05_grid_and_battle_system.md) - Understand tactical battle
+5. Read [battle_screen.py](../combat/battle_screen.py) - See complete implementation
+6. Experiment: Modify unit stats or create a new enemy type
 
 ### Advanced Path (Want to extend the system)
 
 1. Read [Architecture Overview](02_architecture_overview.md#adding-a-new-screen) - Screen pattern
 2. Read [Data Flow](04_data_flow.md) - Understand interaction patterns
-3. Read [UI Components](03_ui_components.md#creating-custom-components) - Component template
-4. Create a new screen (Settings, Credits, etc.)
-5. Create a new UI component (Slider, Checkbox, etc.)
+3. Read [Grid and Battle System](05_grid_and_battle_system.md) - Combat system
+4. Implement movement or attack systems (see Next Session in [CLAUDE.md](../CLAUDE.md))
+5. Create a new screen or UI component
 
 ---
 
@@ -264,8 +283,8 @@ These docs should be updated when:
 - New components are created
 - Performance characteristics change
 
-Last updated: 2025-11-27
-Version: 0.1.0 (MVP Phase 1)
+Last updated: 2025-11-27 (Battle System Complete)
+Version: 0.1.0 (MVP Phase 1 - 70% Complete)
 
 ---
 
