@@ -17,8 +17,8 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 
 ## Current Development State
 
-**Last Updated**: 2025-11-27 (Session 2)
-**Current Phase**: Phase 1 - MVP (Core Systems Complete, Combat Mechanics Next)
+**Last Updated**: 2025-11-28 (Session 3)
+**Current Phase**: Phase 1 - MVP (Visual Systems Complete, Combat Mechanics Next)
 
 ### ✅ Completed Components
 
@@ -106,7 +106,20 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
   - Cached loading for performance
 - ✅ Test suite (testing/test_names.py)
 
-#### 10. Documentation
+#### 10. Visual Rendering System (NEW!)
+- ✅ Emoji font support with automatic detection
+  - Windows: Segoe UI Emoji
+  - macOS: Apple Color Emoji
+  - Linux: Noto Color Emoji/Symbola
+- ✅ ASCII fallback system for systems without emoji fonts
+  - Text symbols: [I], [C], [H] for units
+  - ASCII cover: ##, ::, .. for terrain
+- ✅ Team-based color coding
+  - Blue for player investigators
+  - Red for enemy units
+- ✅ Ensures visual clarity across all platforms
+
+#### 11. Documentation
 - ✅ Comprehensive inline code comments (all files)
 - ✅ docs/01_pygame_fundamentals.md - Pygame-CE basics
 - ✅ docs/02_architecture_overview.md - System structure
@@ -206,16 +219,24 @@ pygame_tactics_test/
   - Melee Attack (adjacent tile only)
 
 #### Visual Representation
-- Unicode/emoji symbols for units:
-  - 👤 Investigator
-  - 🔫 Cultist
-  - 🐺 Hound of Tindalos
+- **Emoji symbols** (with font support):
+  - 👤 Investigator (BLUE - player team)
+  - 🔫 Cultist (RED - enemy team)
+  - 🐺 Hound of Tindalos (RED - enemy team)
   - ⬛ Full cover
   - ▪️ Half cover
   - ⬜ Empty tile
+- **ASCII fallback** (without emoji fonts):
+  - [I] Investigator (BLUE - player team)
+  - [C] Cultist (RED - enemy team)
+  - [H] Hound (RED - enemy team)
+  - ## Full cover
+  - :: Half cover
+  - .. Empty tile
+- **Team color coding**: Blue = Player, Red = Enemy
 - Grid-based display with coordinates
-- Color coding for health/sanity states
-- Selected unit highlighting
+- Health/sanity bars (red/blue)
+- Selected unit highlighting (yellow border)
 
 #### Win/Lose Conditions
 - **Win**: Eliminate all enemies
@@ -1167,7 +1188,48 @@ MISSION_REWARD_BASE = 200
 
 ---
 
-## Previous Session: Tactical Battle Development ✅ COMPLETE
+## Session 3: Visual Rendering System ✅ COMPLETE
+
+**Completed**: 2025-11-28
+
+### What Was Built
+
+Successfully implemented emoji font support and team color coding:
+
+1. ✅ **Emoji Font System** (`combat/battle_screen.py`)
+   - Automatic detection and loading of emoji-capable fonts
+   - Platform support: Windows (Segoe UI Emoji), macOS (Apple Color Emoji), Linux (Noto Color Emoji)
+   - Graceful fallback to ASCII symbols when emoji fonts unavailable
+   - Applies to both unit symbols AND cover symbols
+
+2. ✅ **Team Color Coding**
+   - Blue color for player investigators (easy identification)
+   - Red color for enemy units (instant threat recognition)
+   - Color-coded symbols improve battlefield clarity at a glance
+
+3. ✅ **ASCII Fallback Mode**
+   - Units: `[I]` Investigator, `[C]` Cultist, `[H]` Hound
+   - Cover: `##` Full cover, `::` Half cover, `..` Empty
+   - Ensures game is playable on all systems, even without emoji support
+
+### Test Results
+```
+✅ Emoji font loads successfully on Windows (Segoe UI Emoji)
+✅ Unit symbols render properly (👤 🔫 🐺)
+✅ Cover symbols render properly (⬛ ▪️)
+✅ Color coding works (blue vs red teams)
+✅ Visual distinction between all unit types
+✅ Game is visually clear and readable
+```
+
+### Impact
+- **Problem Solved**: Units were rendering as boxes/question marks with default font
+- **User Experience**: Battlefield is now instantly readable with color-coded teams
+- **Cross-Platform**: Works on all operating systems with automatic fallback
+
+---
+
+## Session 2: Tactical Battle Development ✅ COMPLETE
 
 **Completed**: 2025-11-27
 
@@ -1234,8 +1296,8 @@ This document will evolve as the game is developed. Update it when:
 - Design decisions change
 - Bugs reveal architectural issues
 
-**Current Version**: 1.2 (Documentation Cleanup)
-**Last Updated**: 2025-11-27
+**Current Version**: 1.3 (Visual Rendering System)
+**Last Updated**: 2025-11-28
 **Target Platform**: Windows/Mac/Linux Desktop
 **Engine**: Pygame CE 2.5.x
 **Python**: 3.10+

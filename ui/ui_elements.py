@@ -338,3 +338,311 @@ class TextLabel:
         Useful for dynamic labels (e.g., health counters, score displays)
         """
         self.text = new_text
+
+
+class RadioButton:
+    """
+    Radio button for selecting one option from a group.
+
+    Radio buttons work in groups where only one can be selected at a time.
+    When you click a radio button, it selects that one and deselects others
+    in the same group.
+    """
+
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        text: str,
+        value: any,
+        group: list,
+        selected: bool = False,
+        on_select: Optional[Callable] = None
+    ):
+        """
+        Initialize a radio button.
+
+        Args:
+            x, y: Position of the radio button
+            text: Label text displayed next to the button
+            value: The value this radio button represents
+            group: List that holds all radio buttons in this group
+            selected: Whether this button starts selected
+            on_select: Callback function when this button is selected
+        """
+        self.x = x
+        self.y = y
+        self.text = text
+        self.value = value
+        self.selected = selected
+        self.on_select = on_select
+
+        # Radio button circle dimensions
+        self.circle_radius = 12
+        self.circle_center = (x + self.circle_radius + 5, y + 20)
+
+        # Clickable area (circle + text)
+        text_width = len(text) * 12  # Approximate text width
+        self.rect = pygame.Rect(x, y, text_width + 100, 40)
+
+        # Visual state
+        self.is_hovered = False
+
+        # Add self to group
+        group.append(self)
+        self.group = group
+
+    def update(self, mouse_pos: Tuple[int, int]) -> None:
+        """Update hover state based on mouse position."""
+        self.is_hovered = self.rect.collidepoint(mouse_pos)
+
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """
+        Handle mouse clicks.
+
+        When clicked, deselect all other radio buttons in the group
+        and select this one.
+        """
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.is_hovered:
+                # Deselect all buttons in group
+                for button in self.group:
+                    button.selected = False
+
+                # Select this button
+                self.selected = True
+
+                # Call callback if provided
+                if self.on_select:
+                    self.on_select(self.value)
+
+                return True
+        return False
+
+    def draw(self, screen: pygame.Surface) -> None:
+        """
+        Draw the radio button.
+
+        Shows a circle (filled if selected, empty if not) and label text.
+        """
+        # Determine colors based on state
+        if self.is_hovered:
+            circle_color = config.COLOR_TEXT_HIGHLIGHT
+            text_color = config.COLOR_TEXT_HIGHLIGHT
+        else:
+            circle_color = config.COLOR_MENU_BORDER
+            text_color = config.COLOR_TEXT
+
+        # Draw outer circle
+        pygame.draw.circle(screen, circle_color, self.circle_center, self.circle_radius, 2)
+
+        # Draw filled inner circle if selected
+        if self.selected:
+            pygame.draw.circle(screen, circle_color, self.circle_center, self.circle_radius - 4)
+
+        # Draw label text
+        font = pygame.font.Font(None, config.FONT_SIZE_SMALL)
+        text_surface = font.render(self.text, True, text_color)
+        text_x = self.circle_center[0] + self.circle_radius + 15
+        text_y = self.circle_center[1] - (config.FONT_SIZE_SMALL // 2)
+        screen.blit(text_surface, (text_x, text_y))
+
+
+class Separator:
+    """
+    Visual separator line for dividing UI sections.
+
+    A simple horizontal line to visually separate different groups
+    of UI elements.
+    """
+
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        width: int,
+        thickness: int = 2,
+        color: Tuple[int, int, int] = None
+    ):
+        """
+        Initialize a separator line.
+
+        Args:
+            x, y: Top-left position of the line
+            width: Width of the separator line
+            thickness: Thickness of the line in pixels
+            color: RGB color tuple (defaults to border color)
+        """
+        self.x = x
+        self.y = y
+        self.width = width
+        self.thickness = thickness
+        self.color = color if color else config.COLOR_MENU_BORDER
+
+    def draw(self, screen: pygame.Surface) -> None:
+        """
+        Draw the separator line.
+
+        CALLED EVERY FRAME by the game loop.
+        """
+        pygame.draw.line(
+            screen,
+            self.color,
+            (self.x, self.y),
+            (self.x + self.width, self.y),
+            self.thickness
+        )
+
+
+class Dropdown:
+    """
+    Dropdown menu for selecting one option from multiple choices.
+
+    Shows current selection, expands when clicked to show all options,
+    and collapses after selection.
+    """
+
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        width: int,
+        options: list,
+        selected_index: int = 0,
+        on_select: Optional[Callable] = None
+    ):
+        """
+        Initialize a dropdown menu.
+
+        Args:
+            x, y: Top-left position
+            width: Width of the dropdown
+            options: List of (display_text, value) tuples
+            selected_index: Index of initially selected option
+            on_select: Callback function when option is selected
+        """
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = 60
+        self.options = options  # List of (text, value) tuples
+        self.selected_index = selected_index
+        self.on_select = on_select
+
+        # State
+        self.is_expanded = False
+        self.is_hovered = False
+        self.hovered_option = -1  # Which option in dropdown is hovered
+
+        # Main button rect (always visible)
+        self.main_rect = pygame.Rect(x, y, width, self.height)
+
+        # Option rects (only when expanded)
+        self.option_rects = []
+        self._update_option_rects()
+
+    def _update_option_rects(self) -> None:
+        """Update the rectangles for each dropdown option."""
+        self.option_rects = []
+        for i in range(len(self.options)):
+            rect = pygame.Rect(
+                self.x,
+                self.y + self.height + (i * self.height),
+                self.width,
+                self.height
+            )
+            self.option_rects.append(rect)
+
+    def update(self, mouse_pos: Tuple[int, int]) -> None:
+        """Update hover states."""
+        self.is_hovered = self.main_rect.collidepoint(mouse_pos)
+
+        # Check which option is hovered (if expanded)
+        self.hovered_option = -1
+        if self.is_expanded:
+            for i, rect in enumerate(self.option_rects):
+                if rect.collidepoint(mouse_pos):
+                    self.hovered_option = i
+                    break
+
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """
+        Handle mouse clicks.
+
+        Click on main button toggles expansion.
+        Click on option selects it and collapses.
+        """
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            # Click on main button
+            if self.is_hovered and not self.is_expanded:
+                self.is_expanded = True
+                return True
+
+            # Click on an option
+            if self.is_expanded and self.hovered_option != -1:
+                self.selected_index = self.hovered_option
+                self.is_expanded = False
+
+                # Call callback with selected value
+                if self.on_select:
+                    _, value = self.options[self.selected_index]
+                    self.on_select(value)
+
+                return True
+
+            # Click outside dropdown when expanded - collapse it
+            if self.is_expanded:
+                self.is_expanded = False
+                return True
+
+        return False
+
+    def draw(self, screen: pygame.Surface) -> None:
+        """
+        Draw the dropdown menu.
+
+        Shows the main button with current selection.
+        If expanded, shows all options below.
+        """
+        # Draw main button
+        bg_color = config.COLOR_MENU_BUTTON_HOVER if self.is_hovered else config.COLOR_MENU_BUTTON
+        pygame.draw.rect(screen, bg_color, self.main_rect)
+        pygame.draw.rect(screen, config.COLOR_MENU_BORDER, self.main_rect, 2)
+
+        # Draw current selection text
+        font = pygame.font.Font(None, config.FONT_SIZE_MEDIUM)
+        selected_text, _ = self.options[self.selected_index]
+        text_surface = font.render(selected_text, True, config.COLOR_TEXT)
+        text_rect = text_surface.get_rect(center=self.main_rect.center)
+        screen.blit(text_surface, text_rect)
+
+        # Draw dropdown arrow
+        arrow_x = self.x + self.width - 30
+        arrow_y = self.y + self.height // 2
+        if self.is_expanded:
+            # Up arrow
+            points = [(arrow_x, arrow_y + 5), (arrow_x - 8, arrow_y - 5), (arrow_x + 8, arrow_y - 5)]
+        else:
+            # Down arrow
+            points = [(arrow_x, arrow_y + 5), (arrow_x - 8, arrow_y - 5), (arrow_x + 8, arrow_y - 5)]
+            points = [(arrow_x, arrow_y - 5), (arrow_x - 8, arrow_y + 5), (arrow_x + 8, arrow_y + 5)]
+        pygame.draw.polygon(screen, config.COLOR_TEXT, points)
+
+        # Draw options if expanded
+        if self.is_expanded:
+            for i, (option_text, _) in enumerate(self.options):
+                rect = self.option_rects[i]
+
+                # Background color (highlight if hovered)
+                if i == self.hovered_option:
+                    bg_color = config.COLOR_MENU_BUTTON_HOVER
+                else:
+                    bg_color = config.COLOR_MENU_BUTTON
+
+                pygame.draw.rect(screen, bg_color, rect)
+                pygame.draw.rect(screen, config.COLOR_MENU_BORDER, rect, 2)
+
+                # Option text
+                text_surface = font.render(option_text, True, config.COLOR_TEXT)
+                text_rect = text_surface.get_rect(center=rect.center)
+                screen.blit(text_surface, text_rect)

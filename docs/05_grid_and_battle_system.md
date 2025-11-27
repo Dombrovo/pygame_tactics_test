@@ -363,7 +363,14 @@ turn_number += 1
 
 ### Rendering
 
-The battle screen renders in layers:
+The battle screen renders in layers with **emoji font support and color coding**:
+
+**Font System**:
+- Automatically detects and loads emoji-capable system fonts:
+  - Windows: Segoe UI Emoji
+  - macOS: Apple Color Emoji
+  - Linux: Noto Color Emoji / Symbola
+- Falls back to ASCII symbols if no emoji font available
 
 **Layer 1: Grid**
 ```python
@@ -371,13 +378,19 @@ for y in range(10):
     for x in range(10):
         # Draw tile background (color based on terrain)
         # Draw grid lines
-        # Draw cover symbols (⬛ ▪️)
+        # Draw cover symbols (⬛ ▪️ or ## ::)
 ```
 
-**Layer 2: Units**
+**Layer 2: Units (with team color coding)**
 ```python
 for unit in all_units:
-    # Draw unit symbol (👤 🔫 🐺)
+    # Choose color: BLUE for player, RED for enemy
+    if unit.team == "player":
+        color = COLOR_PLAYER  # Blue
+    else:
+        color = COLOR_ENEMY   # Red
+
+    # Draw unit symbol (👤 🔫 🐺 or [I] [C] [H])
     # Draw health bar (red)
     # Draw sanity bar (blue)
 ```
@@ -444,10 +457,13 @@ def _check_win_lose(self):
 ## Current Limitations (To Be Implemented)
 
 The battle system currently supports:
-- ✅ Grid rendering
-- ✅ Unit rendering and visualization
-- ✅ Unit selection
-- ✅ Turn tracking
+- ✅ Grid rendering with cover symbols
+- ✅ Unit rendering with emoji font support
+- ✅ Team color coding (blue vs red)
+- ✅ ASCII fallback for systems without emoji fonts
+- ✅ Unit selection (mouse click, Tab cycling)
+- ✅ Turn tracking (player/enemy phases)
+- ✅ Health/sanity bar visualization
 
 **Not yet implemented**:
 - ❌ Movement (clicking tile to move)

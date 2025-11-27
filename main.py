@@ -22,6 +22,7 @@ import pygame
 import sys
 import config
 from ui.title_screen import TitleScreen
+from ui.settings_screen import SettingsScreen
 from combat.battle_screen import BattleScreen
 
 
@@ -89,62 +90,78 @@ def main():
     clock = pygame.time.Clock()
 
     # ========================================================================
-    # STEP 4: Show title screen and get user's choice
+    # STEP 4: Main game loop - navigate between screens
     # ========================================================================
-    # Create the title screen, passing it our display Surface
-    title_screen = TitleScreen(screen)
+    # Start at title screen
+    next_screen = "title"
 
-    # Run the title screen's game loop
-    # This BLOCKS here until user clicks a button
-    # Returns: "new_game", "continue", "settings", or "exit"
-    next_screen = title_screen.run(clock)
+    # Keep running until user chooses to exit
+    game_running = True
 
     # ========================================================================
-    # STEP 5: Handle navigation based on user's choice
+    # STEP 5: Main navigation loop - handle screen transitions
     # ========================================================================
-    # This is where we'll add more screens in future phases
+    # Navigation loop allows moving between different screens
+    # (title → settings → title, title → battle → title, etc.)
     #
-    # Future structure will be:
-    # while game_running:
-    #     if next_screen == "new_game":
-    #         battle_screen = BattleScreen(screen)
-    #         next_screen = battle_screen.run(clock)
-    #     elif next_screen == "campaign":
-    #         campaign_screen = CampaignScreen(screen)
-    #         next_screen = campaign_screen.run(clock)
-    #     # etc.
+    # Each screen's run() method returns the next screen to show:
+    # - "title" = Go back to main menu
+    # - "new_game" = Start a battle
+    # - "settings" = Open settings menu
+    # - "exit" or "quit" = Exit the game
 
-    if next_screen == "new_game":
-        print("Starting new game...")
-        # Launch tactical battle (Phase 1 MVP)
-        battle = BattleScreen(screen)
-        battle_result = battle.run(clock)
+    while game_running:
+        if next_screen == "title":
+            # Show title screen
+            title_screen = TitleScreen(screen)
+            next_screen = title_screen.run(clock)
 
-        # Handle battle result
-        if battle_result == "victory":
-            print("VICTORY! Returning to title screen...")
-        elif battle_result == "defeat":
-            print("DEFEAT! Returning to title screen...")
-        # If user pressed ESC, battle_result will be "title"
+        elif next_screen == "new_game":
+            print("Starting new game...")
+            # Launch tactical battle (Phase 1 MVP)
+            battle = BattleScreen(screen)
+            battle_result = battle.run(clock)
 
-    elif next_screen == "continue":
-        print("Loading saved game...")
-        # TODO: Load saved game (Phase 2)
-        # save_data = load_save_file()
-        # campaign = CampaignScreen(screen, save_data)
-        # campaign.run(clock)
-        print("Save/load system not yet implemented")
+            # Handle battle result
+            if battle_result == "victory":
+                print("VICTORY! Returning to title screen...")
+                next_screen = "title"
+            elif battle_result == "defeat":
+                print("DEFEAT! Returning to title screen...")
+                next_screen = "title"
+            elif battle_result == "title":
+                # User pressed ESC during battle
+                next_screen = "title"
+            else:
+                # Fallback to title
+                next_screen = "title"
 
-    elif next_screen == "settings":
-        print("Opening settings...")
-        # TODO: Settings screen
-        # settings = SettingsScreen(screen)
-        # settings.run(clock)
-        print("Settings screen not yet implemented")
+        elif next_screen == "continue":
+            print("Loading saved game...")
+            # TODO: Load saved game (Phase 2)
+            # save_data = load_save_file()
+            # campaign = CampaignScreen(screen, save_data)
+            # next_screen = campaign.run(clock)
+            print("Save/load system not yet implemented")
+            # For now, return to title
+            next_screen = "title"
 
-    elif next_screen == "exit":
-        # User clicked Exit or closed the window
-        print("Thank you for playing Eldritch Tactics!")
+        elif next_screen == "settings":
+            print("Opening settings...")
+            # Launch settings screen
+            settings = SettingsScreen(screen)
+            next_screen = settings.run(clock)
+            # Settings screen returns "title" when done
+
+        elif next_screen == "exit" or next_screen == "quit":
+            # User chose to exit
+            print("Thank you for playing Eldritch Tactics!")
+            game_running = False
+
+        else:
+            # Unknown screen - fallback to title
+            print(f"Unknown screen: {next_screen}, returning to title")
+            next_screen = "title"
 
     # ========================================================================
     # STEP 6: Clean up and exit

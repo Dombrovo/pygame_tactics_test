@@ -66,6 +66,9 @@ class Unit:
         self.base_movement_range = movement_range
 
         # --- MODIFIERS (Applied by backgrounds, traits, equipment, status effects) ---
+        # These values are ADDED to base stats to get effective stats
+        # Example: base_accuracy = 75, accuracy_modifier = +10 → accuracy = 85%
+        # Modifiers can be positive (buffs) or negative (debuffs/injuries)
         self.max_health_modifier = 0
         self.max_sanity_modifier = 0
         self.accuracy_modifier = 0
@@ -78,30 +81,70 @@ class Unit:
         self.has_attacked = False   # Track if unit attacked this turn
 
     # --- CALCULATED STATS (Properties: base + modifiers) ---
+    # These are Python @property decorators, which make methods act like attributes
+    # When you access unit.max_health, it actually calls the max_health() method
+    # This auto-calculates effective stats from base + modifiers
+    #
+    # Benefits:
+    # 1. Always up-to-date (recalculated each access)
+    # 2. No need to manually update when modifiers change
+    # 3. Clean syntax: unit.accuracy instead of unit.get_accuracy()
+    #
+    # Example usage:
+    #   unit.base_accuracy = 75
+    #   unit.accuracy_modifier = 10
+    #   print(unit.accuracy)  # Prints 85 (auto-calculated)
 
     @property
     def max_health(self) -> int:
-        """Effective max health = base + modifiers"""
+        """
+        Effective max health = base + modifiers.
+
+        Clamped to minimum of 1 (unit always has at least 1 max HP).
+        Even with severe injuries, a unit can't have 0 max health.
+        """
         return max(1, self.base_max_health + self.max_health_modifier)
 
     @property
     def max_sanity(self) -> int:
-        """Effective max sanity = base + modifiers"""
+        """
+        Effective max sanity = base + modifiers.
+
+        Clamped to minimum of 1 (unit always has at least 1 max sanity).
+        """
         return max(1, self.base_max_sanity + self.max_sanity_modifier)
 
     @property
     def accuracy(self) -> int:
-        """Effective accuracy = base + modifiers (clamped 5-95%)"""
+        """
+        Effective accuracy = base + modifiers.
+
+        Clamped between 5-95%:
+        - Minimum 5%: Even terrible shooters have some chance to hit
+        - Maximum 95%: Even expert marksmen can miss (no guaranteed hits)
+
+        This range prevents degenerate gameplay (auto-hit or auto-miss).
+        """
         return max(5, min(95, self.base_accuracy + self.accuracy_modifier))
 
     @property
     def will(self) -> int:
-        """Effective will = base + modifiers"""
+        """
+        Effective will = base + modifiers.
+
+        Will reduces sanity damage taken (acts as sanity armor).
+        Minimum 0 (can't have negative will, but also no minimum positive value).
+        """
         return max(0, self.base_will + self.will_modifier)
 
     @property
     def movement_range(self) -> int:
-        """Effective movement range = base + modifiers"""
+        """
+        Effective movement range = base + modifiers.
+
+        Clamped to minimum of 1 (unit must be able to move at least 1 tile).
+        Even with leg injuries, a unit can still crawl/limp 1 tile.
+        """
         return max(1, self.base_movement_range + self.movement_modifier)
 
     def take_damage(self, amount: int) -> int:
@@ -198,11 +241,33 @@ class Unit:
         """
         Apply stat modifiers from backgrounds, traits, or equipment.
 
+        This is the PRIMARY way to modify unit stats. Use this instead of
+        directly changing modifier values.
+
+        Modifiers are ADDITIVE - calling this multiple times stacks the effects:
+        - First call: apply_stat_modifiers(accuracy=10) → accuracy_modifier = +10
+        - Second call: apply_stat_modifiers(accuracy=5) → accuracy_modifier = +15
+
+        Common use cases:
+        - Applying background traits at creation:
+          investigator.apply_stat_modifiers(max_health=3, accuracy=-5)
+
+        - Equipping items:
+          investigator.apply_stat_modifiers(accuracy=10)  # Scoped rifle
+
+        - Suffering injuries:
+          investigator.apply_stat_modifiers(movement=-1)  # Leg wound
+
+        - Temporary buffs/debuffs (Phase 2+):
+          investigator.apply_stat_modifiers(will=2)  # Elder Sign protection
+
         Args:
-            **modifiers: Keyword arguments for stat changes
-                        (e.g., accuracy=10, max_health=-2, will=3)
+            **modifiers: Keyword arguments for stat changes.
+                        Values can be positive (buff) or negative (debuff).
+                        Keys: max_health, max_sanity, accuracy, will, movement
 
         Example:
+            # Apply "Veteran" trait: +10% accuracy, -1 sanity
             unit.apply_stat_modifiers(accuracy=10, max_sanity=-1)
         """
         if "max_health" in modifiers:
@@ -214,6 +279,7 @@ class Unit:
         if "will" in modifiers:
             self.will_modifier += modifiers["will"]
         if "movement" in modifiers or "movement_range" in modifiers:
+            # Accept both "movement" and "movement_range" for flexibility
             self.movement_modifier += modifiers.get("movement", modifiers.get("movement_range", 0))
 
     def has_modifiers(self) -> bool:
@@ -239,20 +305,32 @@ class Unit:
         """
         Check if unit can move this turn.
 
+        Action economy (MVP):
+        - Each turn, units can: Move + Attack OR Move + Move
+        - If you attack, you can't move a second time
+        - If you move twice, you can't attack
+
         Returns:
-            True if unit hasn't moved twice yet
+            True if unit hasn't exhausted movement options
         """
-        # In MVP: Can move if haven't attacked, or can always move once
+        # Can move if: haven't attacked yet, OR haven't moved at all
+        # This allows: Move→Move OR Move→Attack
         return not self.has_attacked or not self.has_moved
 
     def can_attack(self) -> bool:
         """
         Check if unit can attack this turn.
 
+        Attack rules (MVP):
+        - Can attack once per turn
+        - Can attack after 0 or 1 moves
+        - Cannot attack after moving twice
+
         Returns:
-            True if unit hasn't attacked and hasn't moved twice
+            True if unit can still attack this turn
         """
-        # Can attack if: (moved 0 or 1 times) AND (haven't attacked)
+        # Can attack if: haven't attacked yet
+        # The flag tracks whether attack action was used, regardless of movement
         return not self.has_attacked
 
     def get_info_text(self) -> str:

@@ -225,49 +225,69 @@ def create_test_squad() -> List[Investigator]:
     """
     Create a test squad of 4 investigators for MVP testing.
 
-    Now uses random name generation with varied stats.
+    Squad composition uses 4 different stat templates to provide
+    tactical variety and encourage different playstyles:
+
+    1. **Balanced** - Jack of all trades, reliable in most situations
+    2. **Sniper** - High accuracy glass cannon, best at range
+    3. **Tank** - High HP frontline fighter, can take hits
+    4. **Scout** - Fast and mentally resilient, good for flanking
+
+    Each investigator gets:
+    - Random name (with 30% chance for nickname)
+    - Random gender (50/50 male/female)
+    - Fixed stats based on their template role
+
+    Phase 2+ will replace this with:
+    - Procedural generation from background classes
+    - Randomized stats within ranges
+    - Starting traits/flaws
+    - Equipment loadouts
 
     Returns:
         List of 4 investigators with randomized names and varied stats
     """
-    # Define stat templates for variety (balanced, sniper, tank, scout)
+    # Define stat templates for variety
+    # Each template represents a different tactical role
     stat_templates = [
-        {  # Balanced
-            "max_health": 15,
-            "max_sanity": 10,
-            "accuracy": 75,
-            "will": 5,
-            "movement_range": 4
+        {  # Template 1: Balanced all-rounder
+            "max_health": 15,      # Average durability
+            "max_sanity": 10,      # Average mental fortitude
+            "accuracy": 75,        # Standard hit chance
+            "will": 5,             # Standard sanity defense
+            "movement_range": 4    # Standard mobility
         },
-        {  # Sniper (high accuracy, low health)
-            "max_health": 12,
-            "max_sanity": 12,
-            "accuracy": 80,
-            "will": 6,
-            "movement_range": 4
+        {  # Template 2: Sniper - precision shooter
+            "max_health": 12,      # Low HP (glass cannon)
+            "max_sanity": 12,      # Better mental resilience
+            "accuracy": 80,        # High accuracy (best shooter)
+            "will": 6,             # Good will
+            "movement_range": 4    # Standard mobility
         },
-        {  # Tank (high health, low sanity, slow)
-            "max_health": 18,
-            "max_sanity": 8,
-            "accuracy": 70,
-            "will": 4,
-            "movement_range": 3
+        {  # Template 3: Tank - frontline bruiser
+            "max_health": 18,      # High HP (can absorb damage)
+            "max_sanity": 8,       # Low sanity (tough but unstable)
+            "accuracy": 70,        # Lower accuracy
+            "will": 4,             # Low will (vulnerable to horror)
+            "movement_range": 3    # Slow (heavy armor implied)
         },
-        {  # Scout (mobile, good sanity)
-            "max_health": 14,
-            "max_sanity": 11,
-            "accuracy": 75,
-            "will": 7,
-            "movement_range": 5
+        {  # Template 4: Scout - mobile flanker
+            "max_health": 14,      # Slightly below average HP
+            "max_sanity": 11,      # Good sanity (stays calm)
+            "accuracy": 75,        # Standard accuracy
+            "will": 7,             # High will (brave)
+            "movement_range": 5    # Fast (best mobility)
         },
     ]
 
     investigators = []
     for template in stat_templates:
-        # Generate random name and gender
+        # Generate random name and gender from name database
         name, gender = generate_random_name()
 
         # Create investigator with random name and template stats
+        # **template unpacks the dict as keyword arguments
+        # Equivalent to: Investigator(name=name, gender=gender, max_health=15, ...)
         inv = Investigator(
             name=name,
             gender=gender,

@@ -87,7 +87,7 @@ All code files have been extensively commented:
 - **[ui/ui_elements.py](../ui/ui_elements.py)** - UI components with detailed explanations
 - **[ui/title_screen.py](../ui/title_screen.py)** - Title screen with positioning math explained
 - **[combat/grid.py](../combat/grid.py)** - Grid and Tile system with cover mechanics
-- **[combat/battle_screen.py](../combat/battle_screen.py)** - Battle UI and rendering
+- **[combat/battle_screen.py](../combat/battle_screen.py)** - Battle UI, emoji font system, and rendering
 - **[entities/unit.py](../entities/unit.py)** - Base unit class with stat system
 - **[entities/investigator.py](../entities/investigator.py)** - Player units with random names
 - **[entities/enemy.py](../entities/enemy.py)** - Enemy types (Cultist, Hound)
@@ -298,7 +298,7 @@ These docs should be updated when:
 - New components are created
 - Performance characteristics change
 
-Last updated: 2025-11-27 (Session 2: Stat System & Name Generation)
+Last updated: 2025-11-28 (Session 3: Visual Rendering System)
 Version: 0.1.0 (MVP Phase 1 - 75% Complete)
 
 ---

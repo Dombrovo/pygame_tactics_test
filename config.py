@@ -17,10 +17,24 @@ Benefits:
 # ============================================================================
 # These control the game window and rendering
 
+# Resolution settings
 SCREEN_WIDTH = 1920   # Horizontal resolution in pixels
 SCREEN_HEIGHT = 1080  # Vertical resolution in pixels
+
+# Available resolutions (width, height) tuples
+AVAILABLE_RESOLUTIONS = [
+    (1280, 720),   # 720p HD
+    (1920, 1080),  # 1080p Full HD (default)
+    (2560, 1440),  # 1440p 2K
+]
+
 FULLSCREEN = True     # True = fullscreen, False = windowed mode
 FPS = 60              # Target frames per second (60 is standard for smooth gameplay)
+SHOW_FPS = False      # Display FPS counter in battles (for debugging/performance monitoring)
+
+# Visual style setting
+# Options: "ascii", "emoji", "image" (image sprites not yet implemented)
+VISUAL_STYLE = "emoji"  # Default to emoji if available
 
 # ============================================================================
 # GRID SETTINGS (for tactical combat - Phase 1)
