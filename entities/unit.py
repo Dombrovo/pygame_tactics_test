@@ -51,23 +51,58 @@ class Unit:
         # Position (will be set when placed on grid)
         self.position: Optional[Tuple[int, int]] = None
 
+        # --- BASE STATS (Set at creation) ---
         # Health system
-        self.max_health = max_health
+        self.base_max_health = max_health
         self.current_health = max_health
 
         # Sanity system
-        self.max_sanity = max_sanity
+        self.base_max_sanity = max_sanity
         self.current_sanity = max_sanity
 
         # Combat stats
-        self.accuracy = accuracy  # Base hit chance percentage
-        self.will = will          # Defense against sanity damage
-        self.movement_range = movement_range
+        self.base_accuracy = accuracy      # Base hit chance percentage
+        self.base_will = will              # Defense against sanity damage
+        self.base_movement_range = movement_range
+
+        # --- MODIFIERS (Applied by backgrounds, traits, equipment, status effects) ---
+        self.max_health_modifier = 0
+        self.max_sanity_modifier = 0
+        self.accuracy_modifier = 0
+        self.will_modifier = 0
+        self.movement_modifier = 0
 
         # Status flags
         self.is_incapacitated = False
         self.has_moved = False      # Track if unit moved this turn
         self.has_attacked = False   # Track if unit attacked this turn
+
+    # --- CALCULATED STATS (Properties: base + modifiers) ---
+
+    @property
+    def max_health(self) -> int:
+        """Effective max health = base + modifiers"""
+        return max(1, self.base_max_health + self.max_health_modifier)
+
+    @property
+    def max_sanity(self) -> int:
+        """Effective max sanity = base + modifiers"""
+        return max(1, self.base_max_sanity + self.max_sanity_modifier)
+
+    @property
+    def accuracy(self) -> int:
+        """Effective accuracy = base + modifiers (clamped 5-95%)"""
+        return max(5, min(95, self.base_accuracy + self.accuracy_modifier))
+
+    @property
+    def will(self) -> int:
+        """Effective will = base + modifiers"""
+        return max(0, self.base_will + self.will_modifier)
+
+    @property
+    def movement_range(self) -> int:
+        """Effective movement range = base + modifiers"""
+        return max(1, self.base_movement_range + self.movement_modifier)
 
     def take_damage(self, amount: int) -> int:
         """
@@ -158,6 +193,38 @@ class Unit:
             True if not incapacitated, False otherwise
         """
         return not self.is_incapacitated
+
+    def apply_stat_modifiers(self, **modifiers):
+        """
+        Apply stat modifiers from backgrounds, traits, or equipment.
+
+        Args:
+            **modifiers: Keyword arguments for stat changes
+                        (e.g., accuracy=10, max_health=-2, will=3)
+
+        Example:
+            unit.apply_stat_modifiers(accuracy=10, max_sanity=-1)
+        """
+        if "max_health" in modifiers:
+            self.max_health_modifier += modifiers["max_health"]
+        if "max_sanity" in modifiers:
+            self.max_sanity_modifier += modifiers["max_sanity"]
+        if "accuracy" in modifiers:
+            self.accuracy_modifier += modifiers["accuracy"]
+        if "will" in modifiers:
+            self.will_modifier += modifiers["will"]
+        if "movement" in modifiers or "movement_range" in modifiers:
+            self.movement_modifier += modifiers.get("movement", modifiers.get("movement_range", 0))
+
+    def has_modifiers(self) -> bool:
+        """Check if unit has any active stat modifiers."""
+        return (
+            self.max_health_modifier != 0 or
+            self.max_sanity_modifier != 0 or
+            self.accuracy_modifier != 0 or
+            self.will_modifier != 0 or
+            self.movement_modifier != 0
+        )
 
     def reset_turn_flags(self):
         """

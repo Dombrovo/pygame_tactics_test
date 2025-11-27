@@ -6,7 +6,78 @@ They have additional attributes for progression and traits (Phase 2+).
 """
 
 from entities.unit import Unit
-from typing import List
+from typing import List, Literal, Dict, Any
+import random
+import json
+from pathlib import Path
+
+
+# Cache for name data (loaded once)
+_NAME_DATA: Dict[str, List[str]] = {}
+
+
+def _load_name_data() -> Dict[str, List[str]]:
+    """
+    Load name data from JSON file (cached).
+
+    Returns:
+        Dictionary with keys: first_male, first_female, last, nick
+    """
+    global _NAME_DATA
+
+    if not _NAME_DATA:
+        # Find the json/names_data.json file
+        json_path = Path(__file__).parent.parent / "json" / "names_data.json"
+
+        with open(json_path, 'r') as f:
+            _NAME_DATA = json.load(f)
+
+    return _NAME_DATA
+
+
+def generate_random_name(include_nickname_chance: float = 0.3) -> tuple[str, Literal["male", "female"]]:
+    """
+    Generate a random investigator name with gender.
+
+    Process:
+    1. Randomly select gender (50% male, 50% female)
+    2. Pick random first name based on gender
+    3. Pick random last name
+    4. 30% chance to add nickname
+
+    Args:
+        include_nickname_chance: Probability of including nickname (default 0.3)
+
+    Returns:
+        Tuple of (full_name, gender)
+        Example: ("Arthur 'Bones' Blackwood", "male")
+    """
+    name_data = _load_name_data()
+
+    # Step 1: Randomly select gender (50/50)
+    gender: Literal["male", "female"] = random.choice(["male", "female"])
+
+    # Step 2: Pick first name based on gender
+    if gender == "male":
+        first_name = random.choice(name_data["first_male"])
+    else:
+        first_name = random.choice(name_data["first_female"])
+
+    # Step 3: Pick last name
+    last_name = random.choice(name_data["last"])
+
+    # Step 4: 30% chance for nickname
+    nickname = None
+    if random.random() < include_nickname_chance:
+        nickname = random.choice(name_data["nick"])
+
+    # Build full name
+    if nickname:
+        full_name = f"{first_name} '{nickname}' {last_name}"
+    else:
+        full_name = f"{first_name} {last_name}"
+
+    return full_name, gender
 
 
 class Investigator(Unit):
@@ -26,7 +97,8 @@ class Investigator(Unit):
         max_sanity: int = 10,
         accuracy: int = 75,
         will: int = 5,
-        movement_range: int = 4
+        movement_range: int = 4,
+        gender: Literal["male", "female"] = "male"
     ):
         """
         Initialize an investigator.
@@ -40,6 +112,7 @@ class Investigator(Unit):
             accuracy: Base hit chance % (default 75)
             will: Sanity defense (default 5)
             movement_range: Tiles per turn (default 4)
+            gender: Character gender ("male" or "female")
         """
         # Initialize base Unit class
         super().__init__(
@@ -52,6 +125,9 @@ class Investigator(Unit):
             team="player",
             symbol="👤"  # Unicode person symbol
         )
+
+        # Identity
+        self.gender = gender
 
         # Progression tracking (Phase 2+)
         self.experience = 0
@@ -149,42 +225,54 @@ def create_test_squad() -> List[Investigator]:
     """
     Create a test squad of 4 investigators for MVP testing.
 
+    Now uses random name generation with varied stats.
+
     Returns:
-        List of 4 investigators with varied stats
+        List of 4 investigators with randomized names and varied stats
     """
-    investigators = [
-        Investigator(
-            name="John Carter",
-            max_health=15,
-            max_sanity=10,
-            accuracy=75,
-            will=5,
-            movement_range=4
-        ),
-        Investigator(
-            name="Sarah Mitchell",
-            max_health=12,
-            max_sanity=12,
-            accuracy=80,
-            will=6,
-            movement_range=4
-        ),
-        Investigator(
-            name="Marcus Stone",
-            max_health=18,
-            max_sanity=8,
-            accuracy=70,
-            will=4,
-            movement_range=3
-        ),
-        Investigator(
-            name="Elena Ramirez",
-            max_health=14,
-            max_sanity=11,
-            accuracy=75,
-            will=7,
-            movement_range=5
-        ),
+    # Define stat templates for variety (balanced, sniper, tank, scout)
+    stat_templates = [
+        {  # Balanced
+            "max_health": 15,
+            "max_sanity": 10,
+            "accuracy": 75,
+            "will": 5,
+            "movement_range": 4
+        },
+        {  # Sniper (high accuracy, low health)
+            "max_health": 12,
+            "max_sanity": 12,
+            "accuracy": 80,
+            "will": 6,
+            "movement_range": 4
+        },
+        {  # Tank (high health, low sanity, slow)
+            "max_health": 18,
+            "max_sanity": 8,
+            "accuracy": 70,
+            "will": 4,
+            "movement_range": 3
+        },
+        {  # Scout (mobile, good sanity)
+            "max_health": 14,
+            "max_sanity": 11,
+            "accuracy": 75,
+            "will": 7,
+            "movement_range": 5
+        },
     ]
+
+    investigators = []
+    for template in stat_templates:
+        # Generate random name and gender
+        name, gender = generate_random_name()
+
+        # Create investigator with random name and template stats
+        inv = Investigator(
+            name=name,
+            gender=gender,
+            **template
+        )
+        investigators.append(inv)
 
     return investigators

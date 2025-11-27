@@ -11,14 +11,14 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 - **Engine**: Pygame CE (Community Edition)
 - **Language**: Python 3.10+
 - **Package Manager**: UV (fast Python package installer and resolver)
-- **Installation**: `uv add pygame-ce` (recommended) or `uv pip install pygame-ce`
+- **Installation**: `uv add pygame-ce` (recommended)
 
 ---
 
 ## Current Development State
 
-**Last Updated**: 2025-11-27
-**Current Phase**: Phase 1 - MVP (Tactical Battle System Complete, Combat Mechanics Next)
+**Last Updated**: 2025-11-27 (Session 2)
+**Current Phase**: Phase 1 - MVP (Core Systems Complete, Combat Mechanics Next)
 
 ### ✅ Completed Components
 
@@ -67,14 +67,21 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 
 #### 7. Entity System
 - ✅ Base Unit class (health, sanity, stats, team)
+- ✅ **Stat System with Modifiers** (NEW!)
+  - Base stats + modifier pattern
+  - Properties auto-calculate effective stats
+  - Easy modifier application for backgrounds/traits
+  - Auto-clamping (accuracy 5-95%, stats min values)
 - ✅ Investigator class (player units)
-  - 👤 John Carter, Sarah Mitchell, Marcus Stone, Elena Ramirez
+  - **Random name generation with gender** (NEW!)
+  - 50/50 male/female assignment
+  - 30% chance for nicknames (e.g., "John 'Bones' Smith")
   - Dual resource system (health + sanity)
   - Experience/progression hooks (Phase 2+)
 - ✅ Enemy base class
 - ✅ Cultist class (🔫 ranged attacker)
 - ✅ Hound of Tindalos class (🐺 fast melee horror)
-- ✅ Test squad/enemy generators
+- ✅ Test squad/enemy generators (now with random names)
 
 #### 8. Battle Screen
 - ✅ Grid rendering (10x10 with cover symbols)
@@ -88,12 +95,25 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 - ✅ Screen navigation (ESC to menu)
 - ✅ Pixel ↔ grid coordinate conversion
 
-#### 9. Documentation
+#### 9. Name Generation System (NEW!)
+- ✅ JSON name database (json/names_data.json)
+  - 84 male first names, 84 female first names
+  - 90 last names, 113 nicknames
+  - 1920s Lovecraftian theme
+- ✅ Random generation function
+  - 50/50 gender distribution
+  - 30% nickname probability
+  - Cached loading for performance
+- ✅ Test suite (testing/test_names.py)
+
+#### 10. Documentation
 - ✅ Comprehensive inline code comments (all files)
 - ✅ docs/01_pygame_fundamentals.md - Pygame-CE basics
 - ✅ docs/02_architecture_overview.md - System structure
 - ✅ docs/03_ui_components.md - UI deep dive
 - ✅ docs/04_data_flow.md - Interaction patterns
+- ✅ docs/05_grid_and_battle_system.md - Grid and battle system
+- ✅ docs/06_stat_system.md - Stat system with modifiers (NEW!)
 - ✅ docs/doc_index.md - Documentation index
 
 ### 🚧 In Progress
@@ -120,18 +140,27 @@ pygame_tactics_test/
 │   ├── grid.py               # Grid, Tile classes, cover system
 │   └── battle_screen.py      # Battle UI, rendering, turn system
 │
-├── entities/                 # ✅ Entity System (complete)
+├── entities/                 # ✅ Entity System (complete with stat modifiers)
 │   ├── __init__.py
-│   ├── unit.py               # Base Unit class
-│   ├── investigator.py       # Player units (4 investigators)
+│   ├── unit.py               # Base Unit class (with stat system)
+│   ├── investigator.py       # Player units (random names + gender)
 │   └── enemy.py              # Enemy units (Cultist, Hound)
+│
+├── json/                     # ✅ Data files
+│   └── names_data.json       # Name database (male/female/last/nick)
+│
+├── testing/                  # ✅ Test scripts
+│   ├── test_names.py         # Name generation tests
+│   └── test_stat_system.py   # Stat modifier tests
 │
 ├── docs/                     # ✅ Documentation (complete)
 │   ├── doc_index.md
 │   ├── 01_pygame_fundamentals.md
 │   ├── 02_architecture_overview.md
 │   ├── 03_ui_components.md
-│   └── 04_data_flow.md
+│   ├── 04_data_flow.md
+│   ├── 05_grid_and_battle_system.md
+│   └── 06_stat_system.md     # NEW: Stat modifiers documentation
 │
 ├── .venv/                    # Virtual environment
 ├── .git/                     # Git repository
@@ -149,8 +178,6 @@ pygame_tactics_test/
 4. Update `combat/battle_screen.py` - Add movement and attack actions
 
 **Estimated Session Time**: 2-3 hours
-
-See [Next Session: Combat Mechanics](#next-session-combat-mechanics) below for detailed plan.
 
 ---
 
@@ -197,9 +224,9 @@ See [Next Session: Combat Mechanics](#next-session-combat-mechanics) below for d
 
 ---
 
-## Architecture Overview
+## Target Architecture (Full Game)
 
-### File Structure
+### Planned File Structure
 ```
 eldritch_tactics/
 ├── main.py                 # Entry point, game loop
@@ -361,24 +388,24 @@ def calculate_hit_chance(attacker: Unit, target: Unit, distance: int, cover_bonu
     base_chance = attacker.accuracy
     distance_penalty = distance * 10  # -10% per tile
     cover_penalty = cover_bonus
-    
+
     final_chance = base_chance - distance_penalty - cover_penalty
     final_chance = max(5, min(95, final_chance))  # Clamp between 5-95%
-    
+
     return final_chance
 
 def resolve_attack(attacker: Unit, target: Unit) -> dict:
     hit_chance = calculate_hit_chance(attacker, target, distance, cover)
     roll = random.randint(1, 100)
-    
+
     if roll <= hit_chance:
         # Hit!
         damage = calculate_damage(attacker)
         sanity_damage = attacker.sanity_damage if hasattr(attacker, 'sanity_damage') else 0
-        
+
         target.current_health -= damage
         target.current_sanity -= sanity_damage
-        
+
         return {"hit": True, "damage": damage, "sanity_damage": sanity_damage}
     else:
         # Miss
@@ -412,11 +439,11 @@ class Action:
         self.action_type: str  # "move", "attack", "ability"
         self.action_points_cost: int  # Future: for action point system
         self.cooldown: int
-        
+
     def can_execute(self, unit: Unit, target) -> bool:
         # Check if action is valid
         pass
-    
+
     def execute(self, unit: Unit, target) -> dict:
         # Perform the action, return results
         pass
@@ -424,10 +451,10 @@ class Action:
 # MVP Actions
 class MoveAction(Action):
     # Move to target tile
-    
+
 class RangedAttackAction(Action):
     # Attack target unit at range
-    
+
 class MeleeAttackAction(Action):
     # Attack adjacent unit
 ```
@@ -443,27 +470,27 @@ class MeleeAttackAction(Action):
 
 ### 5. UI System
 
-#### Screen Layout (800x600 resolution MVP)
+#### Screen Layout (1920x1080 resolution)
 ```
-┌─────────────────────────────────────────────────────────┐
-│  TURN 3 | PLAYER PHASE                    [END TURN]    │
-├──────────────────────────┬──────────────────────────────┤
-│                          │  SELECTED UNIT               │
-│                          │  👤 John Carter              │
-│                          │  ❤️  HP: 12/15               │
-│      GRID (10x10)        │  🧠 SAN: 8/10                │
-│      400x400px           │  🎯 Acc: 75%                 │
-│                          │  🏃 Move: 4                  │
-│                          │                              │
-│                          │  ACTIONS:                    │
-│                          │  [Move] [Shoot] [Overwatch]  │
-│                          │                              │
-│                          │  TARGET INFO:                │
-│                          │  🔫 Cultist                  │
-│                          │  Range: 3 tiles              │
-│                          │  Hit Chance: 65%             │
-│                          │  (Cover: -20%)               │
-└──────────────────────────┴──────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  TURN 3 | PLAYER PHASE                        [END TURN]     │
+├───────────────────────────┬──────────────────────────────────┤
+│                           │  SELECTED UNIT                   │
+│                           │  👤 John Carter                  │
+│                           │  ❤️  HP: 12/15                   │
+│      GRID (10x10)         │  🧠 SAN: 8/10                    │
+│      800x800px            │  🎯 Acc: 75%                     │
+│                           │  🏃 Move: 4                      │
+│                           │                                  │
+│                           │  ACTIONS:                        │
+│                           │  [Move] [Shoot] [Overwatch]      │
+│                           │                                  │
+│                           │  TARGET INFO:                    │
+│                           │  🔫 Cultist                      │
+│                           │  Range: 3 tiles                  │
+│                           │  Hit Chance: 65%                 │
+│                           │  (Cover: -20%)                   │
+└───────────────────────────┴──────────────────────────────────┘
 ```
 
 #### Rendering Layers
@@ -503,7 +530,7 @@ class CampaignState:
         self.regions: dict[str, Region]
         self.available_missions: list[Mission]
         self.completed_missions: int
-        
+
     def advance_time(self, days: int):
         # Time passes
         # Threat increases if missions ignored
@@ -537,10 +564,10 @@ class Roster:
         self.investigators: list[Investigator]
         self.max_active: int = 4  # Squad size
         self.max_total: int = 12  # Roster size
-        
+
     def recruit_investigator(self) -> Investigator:
         # Generate random investigator with traits
-        
+
     def retire_investigator(self, inv: Investigator):
         # Remove from roster (death, madness, retirement)
 ```
@@ -551,17 +578,17 @@ def generate_investigator() -> Investigator:
     inv = Investigator()
     inv.name = random_name()
     inv.background = random.choice(BACKGROUNDS)  # Professor, Soldier, Detective, etc.
-    
+
     # Randomize stats (within ranges based on background)
     inv.max_health = random.randint(10, 20)
     inv.max_sanity = random.randint(8, 15)
     inv.accuracy = random.randint(60, 80)
     inv.will = random.randint(5, 10)
     inv.movement_range = random.randint(4, 6)
-    
+
     # Assign starting traits (1-2 flaws, 0-1 bonuses)
     inv.traits = generate_starting_traits()
-    
+
     return inv
 ```
 
@@ -592,13 +619,13 @@ class Base:
     def __init__(self):
         self.facilities: dict[str, Facility]
         self.resources: Resources
-        
+
 class Resources:
     def __init__(self):
         self.funds: int = 1000  # Money
         self.intel: int = 0     # Information/leads
         self.artifacts: int = 0  # Eldritch items
-        
+
 class Facility:
     name: str
     level: int
@@ -657,7 +684,7 @@ class Equipment:
         self.name: str
         self.slot: str  # "weapon", "armor", "accessory"
         self.modifiers: dict  # Stat bonuses
-        
+
 class Investigator:
     # ... existing attributes ...
     equipped_weapon: Equipment | None
@@ -706,10 +733,10 @@ class Ability:
         self.range: int
         self.target_type: str  # "self", "ally", "enemy", "tile"
         self.effect: callable
-        
+
     def can_use(self, user: Unit, target) -> bool:
         # Check cooldown, range, LOS
-        
+
     def use(self, user: Unit, target) -> dict:
         # Execute ability effect
 ```
@@ -806,74 +833,70 @@ class SaveGame:
 
 ## Implementation Phases Summary
 
-### Phase 1: MVP (Weeks 1-2)
-- [x] Project setup, file structure
-- [x] UI framework (Button, MenuButton, TextLabel)
-- [x] Title screen with navigation
-- [x] Main entry point and screen orchestration
-- [x] Comprehensive documentation
-- [x] Grid system and rendering
-- [x] Basic unit class and stats
-- [x] Entity system (Investigator, Enemy base classes)
-- [x] 2 enemy types (Cultist, Hound)
-- [x] Turn-based game loop (player/enemy phases)
-- [x] Battle UI (grid rendering, unit rendering, info panel)
-- [x] Unit selection (mouse click, Tab cycling)
-- [x] Win/lose conditions (detection implemented)
-- [x] Screen navigation (battle ↔ title)
-- [ ] Movement system with pathfinding
-- [ ] Line of sight calculation
-- [ ] Combat resolution (hit chance, damage)
-- [ ] Attack actions (ranged, melee)
-- [ ] Enemy AI (basic movement and attacks)
-
-**Current Progress**: 70% complete (grid & entities done, combat mechanics next)
+### Phase 1: MVP (Current - 70% Complete)
 **Deliverable**: Playable tactical battle
 
+**Completed**:
+- ✅ Project foundation & UV setup
+- ✅ Configuration system
+- ✅ UI framework (Button, MenuButton, TextLabel)
+- ✅ Title screen with navigation
+- ✅ Grid system (10x10, cover, distance calculations)
+- ✅ Entity system (Unit, Investigator, Cultist, Hound)
+- ✅ Battle screen (rendering, selection, turn system)
+- ✅ Comprehensive documentation
+
+**Remaining**:
+- Movement system with pathfinding
+- Line of sight calculation
+- Combat resolution (hit chance, damage)
+- Attack actions (ranged, melee)
+- Enemy AI (basic movement and attacks)
+
 ### Phase 2: Meta-Layer Foundation (Weeks 3-4)
-- [ ] Campaign state management
-- [ ] Mission select screen
-- [ ] Investigator roster system
-- [ ] Character generation with traits
-- [ ] Post-mission healing/recovery
-- [ ] Basic threat meter
-- [ ] Simple resource system (funds)
-- [ ] Save/load functionality
+- Campaign state management
+- Mission select screen
+- Investigator roster system
+- Character generation with traits
+- Post-mission healing/recovery
+- Basic threat meter
+- Simple resource system (funds)
+- Save/load functionality
 
 **Deliverable**: Campaign with multiple missions
 
 ### Phase 3: Depth & Variety (Weeks 5-6)
-- [ ] Class system and specializations
-- [ ] Expanded ability system (5+ abilities per class)
-- [ ] 5+ enemy types
-- [ ] Equipment/loadout system
-- [ ] Base building (3-4 facilities)
-- [ ] Research tree (10+ projects)
-- [ ] Mission variety (3+ mission types)
-- [ ] Advanced AI behaviors
+- Class system and specializations
+- Expanded ability system (5+ abilities per class)
+- 5+ enemy types
+- Equipment/loadout system
+- Base building (3-4 facilities)
+- Research tree (10+ projects)
+- Mission variety (3+ mission types)
+- Advanced AI behaviors
 
 **Deliverable**: Full strategy layer
 
 ### Phase 4: Advanced Combat (Weeks 7-8)
-- [ ] Status effects system (bleeding, stunned, panicked)
-- [ ] Environmental hazards
-- [ ] Destructible terrain
-- [ ] Overwatch system
-- [ ] Enemy reinforcements
-- [ ] Boss enemies with phases
-- [ ] Procedural map generation
+- Status effects system (bleeding, stunned, panicked)
+- Environmental hazards
+- Destructible terrain
+- Overwatch system
+- Enemy reinforcements
+- Boss enemies with phases
+- Procedural map generation
 
 **Deliverable**: Tactical depth on par with X-COM
 
 ### Phase 5: Polish (Weeks 9-10)
-- [ ] Replace unicode with sprites
-- [ ] Animation system
-- [ ] Particle effects
-- [ ] Audio implementation
-- [ ] Narrative events
-- [ ] Tutorial/intro sequence
-- [ ] Balance pass
-- [ ] Bug fixes
+- Replace unicode with sprites
+- Animation system
+- Particle effects
+- Audio implementation
+- Narrative events
+- Tutorial/intro sequence
+- Balance pass
+- Bug fixes
 
 **Deliverable**: Polished, complete game
 
@@ -925,42 +948,6 @@ ENEMY_STATS = {
 - Display enemy stats after first encounter
 - Allow saving mid-campaign
 - No hidden mechanics that feel unfair
-
----
-
-## Development Workflow with Claude Code
-
-### Initial Setup
-```bash
-mkdir eldritch_tactics
-cd eldritch_tactics
-
-# Using UV for fast package management
-uv venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-
-# Install dependencies with UV
-uv pip install pygame-ce
-
-# Optional: Create a requirements.txt for dependency tracking
-uv pip freeze > requirements.txt
-```
-
-### Adding New Dependencies
-```bash
-# RECOMMENDED: Use `uv add` to automatically update pyproject.toml
-uv add <package-name>
-
-# Add development dependencies
-uv add --dev pytest pytest-cov
-
-# Remove a package
-uv remove <package-name>
-
-# LEGACY: Using uv pip (only if not using project management)
-uv pip install <package-name>
-uv pip freeze > requirements.txt
-```
 
 ---
 
@@ -1118,51 +1105,25 @@ uv add <each-package>
 
 ---
 
-### Development Iteration Pattern
-1. Read this Claude.md for context
-2. Implement one system at a time (start with grid, then units, then combat)
-3. Test each system in isolation before integrating
-4. Commit working code frequently
-
-### Testing Commands
-```bash
-# Run main game
-python main.py
-
-# Run specific test
-python -m pytest tests/test_combat.py
-
-# Debug mode (shows grid coordinates, hit chances, etc.)
-python main.py --debug
-```
-
-### Phase 1 First Steps
-1. **Create project structure** (folders and __init__ files)
-2. **Implement config.py** with constants
-3. **Build Grid class** (grid.py)
-4. **Build basic renderer** to display grid
-5. **Add Unit class** and place on grid
-6. **Implement movement** (pathfinding, input handling)
-7. **Add combat resolution** (hit chance calculations)
-8. **Implement turn system** (player/enemy phases)
-9. **Add enemy AI** (simple: move toward player, attack if in range)
-10. **Polish UI** (show stats, action buttons)
-
----
-
 ## Configuration Reference
 
 ### Game Constants (config.py)
+Current values as of 2025-11-27:
+
 ```python
 # Display
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 1920
+SCREEN_HEIGHT = 1080
+FULLSCREEN = True
 GRID_SIZE = 10
-TILE_SIZE = 40
+TILE_SIZE = 80
 FPS = 60
 
 # Colors
-COLOR_BG = (20, 20, 30)
+COLOR_BG = (15, 15, 25)
+COLOR_UI_BG = (25, 25, 35)
+COLOR_TEXT = (220, 220, 230)
+COLOR_TEXT_HIGHLIGHT = (255, 200, 100)
 COLOR_GRID = (50, 50, 60)
 COLOR_PLAYER = (100, 150, 255)
 COLOR_ENEMY = (255, 100, 100)
@@ -1249,622 +1210,6 @@ Successfully implemented the tactical battle system foundation:
 
 ---
 
-## Next Session: Combat Mechanics
-
-**Session Focus**: Implement movement, attacks, and line of sight
-
-**Prerequisites**:
-- Review `combat/grid.py` - Grid system and distance calculations
-- Review `entities/unit.py` - Unit stats and combat attributes
-- Review `combat/battle_screen.py` - Current battle loop structure
-
-### Step-by-Step Implementation Plan
-
-#### Step 1: Create Combat Module Structure (10 min)
-
-```bash
-# Create directories
-mkdir combat
-mkdir entities
-mkdir data
-
-# Create __init__.py files
-touch combat/__init__.py
-touch entities/__init__.py
-touch data/__init__.py
-```
-
-#### Step 2: Update config.py (5 min)
-
-Add grid-specific constants if not already present:
-
-```python
-# Grid Settings (already exists, verify values)
-GRID_SIZE = 10          # 10x10 grid
-TILE_SIZE = 80          # Each tile is 80x80 pixels
-
-# Grid Colors (add if missing)
-COLOR_GRID_LINE = (70, 70, 90)       # Grid lines
-COLOR_TILE_EMPTY = (30, 30, 40)      # Empty tile
-COLOR_TILE_SELECTED = (100, 120, 140) # Selected tile
-COLOR_TILE_VALID_MOVE = (50, 100, 50) # Valid movement
-
-# Unit symbols (add)
-SYMBOL_INVESTIGATOR = "👤"
-SYMBOL_CULTIST = "🔫"
-SYMBOL_HOUND = "🐺"
-SYMBOL_FULL_COVER = "⬛"
-SYMBOL_HALF_COVER = "▪️"
-```
-
-#### Step 3: Create Grid System (30 min)
-
-**File**: `combat/grid.py`
-
-```python
-"""
-Grid and Tile System
-Represents the 10x10 tactical battlefield
-"""
-
-import pygame
-from typing import Optional, Tuple, List
-import config
-
-
-class Tile:
-    """Represents a single tile on the grid"""
-
-    def __init__(self, x: int, y: int):
-        """
-        Initialize a tile
-
-        Args:
-            x: Grid X coordinate (0-9)
-            y: Grid Y coordinate (0-9)
-        """
-        self.grid_x = x  # Grid coordinates
-        self.grid_y = y
-
-        # Terrain type: "empty", "half_cover", "full_cover"
-        self.terrain_type = "empty"
-
-        # Unit occupying this tile (None if empty)
-        self.unit = None
-
-        # Visual properties
-        self.is_selected = False
-        self.is_valid_move = False
-
-    def get_screen_pos(self) -> Tuple[int, int]:
-        """
-        Convert grid coordinates to screen pixel coordinates
-
-        Returns:
-            (x, y) pixel position for top-left of tile
-        """
-        # Offset to center grid on screen
-        grid_offset_x = (config.SCREEN_WIDTH - (config.GRID_SIZE * config.TILE_SIZE)) // 2
-        grid_offset_y = 100  # Leave room for UI at top
-
-        pixel_x = grid_offset_x + (self.grid_x * config.TILE_SIZE)
-        pixel_y = grid_offset_y + (self.grid_y * config.TILE_SIZE)
-
-        return (pixel_x, pixel_y)
-
-    def get_symbol(self) -> str:
-        """Get the unicode symbol to display on this tile"""
-        if self.unit:
-            return self.unit.symbol
-        elif self.terrain_type == "full_cover":
-            return config.SYMBOL_FULL_COVER
-        elif self.terrain_type == "half_cover":
-            return config.SYMBOL_HALF_COVER
-        else:
-            return ""
-
-
-class Grid:
-    """Represents the 10x10 tactical battlefield"""
-
-    def __init__(self):
-        """Initialize 10x10 grid of tiles"""
-        self.size = config.GRID_SIZE
-
-        # Create 2D array of tiles
-        self.tiles: List[List[Tile]] = []
-        for y in range(self.size):
-            row = []
-            for x in range(self.size):
-                row.append(Tile(x, y))
-            self.tiles.append(row)
-
-        # Place some cover (for testing)
-        self.setup_test_cover()
-
-    def setup_test_cover(self):
-        """Place some cover tiles for testing"""
-        # Full cover positions
-        self.tiles[3][4].terrain_type = "full_cover"
-        self.tiles[3][5].terrain_type = "full_cover"
-        self.tiles[6][4].terrain_type = "full_cover"
-        self.tiles[6][5].terrain_type = "full_cover"
-
-        # Half cover positions
-        self.tiles[2][7].terrain_type = "half_cover"
-        self.tiles[7][2].terrain_type = "half_cover"
-
-    def get_tile(self, x: int, y: int) -> Optional[Tile]:
-        """
-        Get tile at grid coordinates
-
-        Args:
-            x: Grid X (0-9)
-            y: Grid Y (0-9)
-
-        Returns:
-            Tile at position, or None if out of bounds
-        """
-        if 0 <= x < self.size and 0 <= y < self.size:
-            return self.tiles[y][x]
-        return None
-
-    def get_tile_at_pixel(self, pixel_x: int, pixel_y: int) -> Optional[Tile]:
-        """
-        Get tile at screen pixel coordinates
-
-        Args:
-            pixel_x: Screen X coordinate
-            pixel_y: Screen Y coordinate
-
-        Returns:
-            Tile at that screen position, or None if outside grid
-        """
-        # Calculate grid offset
-        grid_offset_x = (config.SCREEN_WIDTH - (config.GRID_SIZE * config.TILE_SIZE)) // 2
-        grid_offset_y = 100
-
-        # Convert to grid coordinates
-        grid_x = (pixel_x - grid_offset_x) // config.TILE_SIZE
-        grid_y = (pixel_y - grid_offset_y) // config.TILE_SIZE
-
-        return self.get_tile(grid_x, grid_y)
-
-    def draw(self, screen: pygame.Surface):
-        """
-        Draw the grid to the screen
-
-        Args:
-            screen: Pygame surface to draw on
-        """
-        # Draw each tile
-        for row in self.tiles:
-            for tile in row:
-                self.draw_tile(screen, tile)
-
-        # Draw grid lines
-        self.draw_grid_lines(screen)
-
-    def draw_tile(self, screen: pygame.Surface, tile: Tile):
-        """Draw a single tile"""
-        pos = tile.get_screen_pos()
-        rect = pygame.Rect(pos[0], pos[1], config.TILE_SIZE, config.TILE_SIZE)
-
-        # Choose background color
-        if tile.is_selected:
-            color = config.COLOR_TILE_SELECTED
-        elif tile.is_valid_move:
-            color = config.COLOR_TILE_VALID_MOVE
-        else:
-            color = config.COLOR_TILE_EMPTY
-
-        # Draw tile background
-        pygame.draw.rect(screen, color, rect)
-
-        # Draw symbol if present
-        symbol = tile.get_symbol()
-        if symbol:
-            font = pygame.font.Font(None, 60)
-            text_surface = font.render(symbol, True, config.COLOR_TEXT)
-            text_rect = text_surface.get_rect(center=rect.center)
-            screen.blit(text_surface, text_rect)
-
-    def draw_grid_lines(self, screen: pygame.Surface):
-        """Draw grid lines"""
-        grid_offset_x = (config.SCREEN_WIDTH - (config.GRID_SIZE * config.TILE_SIZE)) // 2
-        grid_offset_y = 100
-
-        # Vertical lines
-        for x in range(self.size + 1):
-            start_pos = (grid_offset_x + x * config.TILE_SIZE, grid_offset_y)
-            end_pos = (grid_offset_x + x * config.TILE_SIZE,
-                      grid_offset_y + self.size * config.TILE_SIZE)
-            pygame.draw.line(screen, config.COLOR_GRID_LINE, start_pos, end_pos, 2)
-
-        # Horizontal lines
-        for y in range(self.size + 1):
-            start_pos = (grid_offset_x, grid_offset_y + y * config.TILE_SIZE)
-            end_pos = (grid_offset_x + self.size * config.TILE_SIZE,
-                      grid_offset_y + y * config.TILE_SIZE)
-            pygame.draw.line(screen, config.COLOR_GRID_LINE, start_pos, end_pos, 2)
-```
-
-#### Step 4: Create Unit Classes (30 min)
-
-**File**: `entities/unit.py`
-
-```python
-"""
-Base Unit class
-All units (investigators and enemies) inherit from this
-"""
-
-from typing import Tuple
-
-
-class Unit:
-    """Base class for all units on the battlefield"""
-
-    def __init__(self, name: str, team: str):
-        """
-        Initialize a unit
-
-        Args:
-            name: Unit's name
-            team: "player" or "enemy"
-        """
-        self.name = name
-        self.team = team  # "player" or "enemy"
-
-        # Position on grid
-        self.grid_x = 0
-        self.grid_y = 0
-
-        # Stats (will be set by subclasses)
-        self.max_health = 10
-        self.current_health = 10
-        self.max_sanity = 10
-        self.current_sanity = 10
-
-        self.movement_range = 4
-        self.accuracy = 75
-        self.will = 5
-
-        # State
-        self.is_incapacitated = False
-        self.has_acted = False  # Has this unit acted this turn?
-
-        # Visual
-        self.symbol = "?"
-
-    def set_position(self, x: int, y: int):
-        """Set unit's grid position"""
-        self.grid_x = x
-        self.grid_y = y
-
-    def get_position(self) -> Tuple[int, int]:
-        """Get unit's grid position"""
-        return (self.grid_x, self.grid_y)
-
-    def take_damage(self, damage: int):
-        """Take health damage"""
-        self.current_health -= damage
-        if self.current_health <= 0:
-            self.current_health = 0
-            self.is_incapacitated = True
-
-    def take_sanity_damage(self, damage: int):
-        """Take sanity damage"""
-        self.current_sanity -= damage
-        if self.current_sanity <= 0:
-            self.current_sanity = 0
-            self.is_incapacitated = True
-```
-
-**File**: `entities/investigator.py`
-
-```python
-"""
-Investigator (Player Unit) class
-"""
-
-from entities.unit import Unit
-import config
-
-
-class Investigator(Unit):
-    """Player-controlled investigator unit"""
-
-    def __init__(self, name: str):
-        super().__init__(name, "player")
-
-        # Player stats
-        self.max_health = 15
-        self.current_health = 15
-        self.max_sanity = 10
-        self.current_sanity = 10
-
-        self.movement_range = 4
-        self.accuracy = 75
-        self.will = 5
-
-        # Visual
-        self.symbol = config.SYMBOL_INVESTIGATOR
-
-        # Future: traits, equipment, experience
-        self.traits = []
-        self.experience = 0
-        self.kills = 0
-```
-
-**File**: `entities/enemy.py`
-
-```python
-"""
-Enemy unit classes
-"""
-
-from entities.unit import Unit
-import config
-
-
-class Cultist(Unit):
-    """Cultist enemy - ranged attacker"""
-
-    def __init__(self, name: str = "Cultist"):
-        super().__init__(name, "enemy")
-
-        # Cultist stats
-        self.max_health = 8
-        self.current_health = 8
-        self.max_sanity = 5  # Low sanity (already mad)
-        self.current_sanity = 5
-
-        self.movement_range = 3
-        self.accuracy = 60
-        self.weapon_range = 3  # Can attack from 3 tiles away
-
-        # Visual
-        self.symbol = config.SYMBOL_CULTIST
-
-
-class HoundOfTindalos(Unit):
-    """Hound of Tindalos - fast melee attacker with sanity damage"""
-
-    def __init__(self, name: str = "Hound"):
-        super().__init__(name, "enemy")
-
-        # Hound stats
-        self.max_health = 12
-        self.current_health = 12
-        self.max_sanity = 0  # Eldritch horror has no sanity
-        self.current_sanity = 0
-
-        self.movement_range = 6  # Fast!
-        self.accuracy = 70
-        self.weapon_range = 1  # Melee only
-        self.sanity_damage = 5  # Causes sanity damage on hit
-
-        # Visual
-        self.symbol = config.SYMBOL_HOUND
-```
-
-#### Step 5: Create Battle Screen (45 min)
-
-**File**: `combat/battle_screen.py`
-
-```python
-"""
-Battle Screen - Tactical combat
-"""
-
-import pygame
-from typing import Optional, List
-import config
-from combat.grid import Grid
-from entities.investigator import Investigator
-from entities.cultist import Cultist
-from entities.hound import HoundOfTindalos
-from ui.ui_elements import TextLabel
-
-
-class BattleScreen:
-    """Tactical battle screen"""
-
-    def __init__(self, screen: pygame.Surface):
-        self.screen = screen
-        self.running = True
-        self.next_screen = None
-
-        # Create grid
-        self.grid = Grid()
-
-        # Create units
-        self.player_units: List[Investigator] = []
-        self.enemy_units: List[Unit] = []
-
-        self.setup_test_battle()
-
-        # Selected unit
-        self.selected_unit: Optional[Unit] = None
-
-        # UI elements
-        self.create_ui()
-
-    def setup_test_battle(self):
-        """Create a test battle scenario"""
-        # Create investigators
-        inv1 = Investigator("John Carter")
-        inv1.set_position(1, 1)
-        self.player_units.append(inv1)
-        self.grid.get_tile(1, 1).unit = inv1
-
-        inv2 = Investigator("Sarah Miller")
-        inv2.set_position(2, 1)
-        self.player_units.append(inv2)
-        self.grid.get_tile(2, 1).unit = inv2
-
-        # Create enemies
-        cultist1 = Cultist("Cultist Alpha")
-        cultist1.set_position(7, 7)
-        self.enemy_units.append(cultist1)
-        self.grid.get_tile(7, 7).unit = cultist1
-
-        hound1 = HoundOfTindalos("Hound")
-        hound1.set_position(8, 8)
-        self.enemy_units.append(hound1)
-        self.grid.get_tile(8, 8).unit = hound1
-
-    def create_ui(self):
-        """Create UI elements"""
-        self.title_label = TextLabel(
-            config.SCREEN_WIDTH // 2,
-            30,
-            "TACTICAL BATTLE - TEST",
-            config.FONT_SIZE_LARGE,
-            config.COLOR_TEXT_HIGHLIGHT,
-            center=True
-        )
-
-    def handle_events(self):
-        """Process input"""
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.next_screen = "exit"
-                self.running = False
-
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    # Return to title
-                    self.next_screen = "title"
-                    self.running = False
-
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                # Click to select unit
-                tile = self.grid.get_tile_at_pixel(*event.pos)
-                if tile and tile.unit:
-                    self.selected_unit = tile.unit
-                    print(f"Selected: {tile.unit.name}")
-
-    def update(self):
-        """Update game state"""
-        pass
-
-    def draw(self):
-        """Render the battle"""
-        self.screen.fill(config.COLOR_BG)
-
-        # Draw title
-        self.title_label.draw(self.screen)
-
-        # Draw grid
-        self.grid.draw(self.screen)
-
-        # Draw selected unit info
-        if self.selected_unit:
-            self.draw_unit_info()
-
-    def draw_unit_info(self):
-        """Draw selected unit's stats"""
-        if not self.selected_unit:
-            return
-
-        unit = self.selected_unit
-        x = 50
-        y = 200
-
-        font = pygame.font.Font(None, 36)
-
-        info_lines = [
-            f"Name: {unit.name}",
-            f"HP: {unit.current_health}/{unit.max_health}",
-            f"Sanity: {unit.current_sanity}/{unit.max_sanity}",
-            f"Position: ({unit.grid_x}, {unit.grid_y})",
-        ]
-
-        for i, line in enumerate(info_lines):
-            text = font.render(line, True, config.COLOR_TEXT)
-            self.screen.blit(text, (x, y + i * 40))
-
-    def run(self, clock: pygame.time.Clock) -> Optional[str]:
-        """Main battle loop"""
-        while self.running:
-            self.handle_events()
-            self.update()
-            self.draw()
-
-            pygame.display.flip()
-            clock.tick(config.FPS)
-
-        return self.next_screen
-```
-
-#### Step 6: Integrate into main.py (5 min)
-
-Update `main.py` to launch battle screen:
-
-```python
-# Add import at top
-from combat.battle_screen import BattleScreen
-
-# In main(), update the navigation:
-if next_screen == "new_game":
-    print("Starting new game...")
-    battle = BattleScreen(screen)
-    next_screen = battle.run(clock)
-```
-
-#### Step 7: Test (15 min)
-
-```bash
-# Run the game
-uv run python main.py
-
-# Click "New Game"
-# Should see:
-# - 10x10 grid with coordinates
-# - 2 investigators (👤) at top-left
-# - 2 enemies (🔫 🐺) at bottom-right
-# - Some cover tiles (⬛ ▪️)
-# - Click on units to see their stats
-# - ESC to return to title screen
-```
-
-### Success Criteria
-
-After this session, you should have:
-- ✅ Grid renders correctly
-- ✅ Units display on grid with symbols
-- ✅ Cover tiles show up
-- ✅ Can click units to select them
-- ✅ Selected unit stats display
-- ✅ ESC returns to title screen
-
-### Next Session After This
-
-Once the above is working, next session will add:
-1. Unit movement (click to move)
-2. Turn system (player turn / enemy turn)
-3. Basic AI (enemies move toward player)
-4. Attack actions (ranged and melee)
-
-### Troubleshooting
-
-Common issues:
-- **Grid not centered**: Check grid_offset_x/y calculations in Grid.get_screen_pos()
-- **Symbols not showing**: Verify font supports unicode, try increasing font size
-- **Can't click units**: Check get_tile_at_pixel() math
-- **Import errors**: Make sure all __init__.py files exist in combat/, entities/, data/
-
-### Documentation
-
-After completing this session:
-- Add inline comments to all new files
-- Update this CLAUDE.md with progress
-- Consider adding docs/05_tactical_battle.md if needed
-
----
-
 ## Questions for Future Design Sessions
 
 1. **Sanity mechanics depth**: Should low sanity cause hallucinations (fake enemies)? Friendly fire? Specific phobias?
@@ -1889,7 +1234,7 @@ This document will evolve as the game is developed. Update it when:
 - Design decisions change
 - Bugs reveal architectural issues
 
-**Current Version**: 1.1 (Foundation Complete, Battle System Ready)
+**Current Version**: 1.2 (Documentation Cleanup)
 **Last Updated**: 2025-11-27
 **Target Platform**: Windows/Mac/Linux Desktop
 **Engine**: Pygame CE 2.5.x
@@ -1901,7 +1246,7 @@ This document will evolve as the game is developed. Update it when:
 
 When starting a new session, Claude Code should:
 1. ✓ Read this entire document
-2. ✓ Understand current phase (Phase 1 MVP)
+2. ✓ Understand current phase (Phase 1 MVP - 70% complete)
 3. ✓ Check which files exist
 4. ✓ Ask which system to work on next
 5. ✓ Implement one small feature at a time

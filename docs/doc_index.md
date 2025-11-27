@@ -42,13 +42,21 @@ For detailed understanding of specific systems:
    - Rendering pipeline
    - State transitions and timing breakdown
 
-5. **[Grid and Battle System](05_grid_and_battle_system.md)** ⭐ NEW
+5. **[Grid and Battle System](05_grid_and_battle_system.md)**
    - Grid system (10x10 battlefield, tiles, cover)
    - Entity system (Units, Investigators, Enemies)
    - Battle screen (rendering, turn management, controls)
    - Coordinate conversion (pixel ↔ grid)
    - Distance calculations and neighbor finding
    - Current limitations and next steps
+
+6. **[Stat System with Modifiers](06_stat_system.md)** ⭐ NEW
+   - Base stats + modifiers pattern
+   - Property-based calculated stats
+   - Applying modifiers (backgrounds, traits, injuries)
+   - Stat clamping rules (min/max enforcement)
+   - API reference and usage examples
+   - Integration with backgrounds and equipment
 
 ---
 
@@ -64,9 +72,11 @@ For detailed understanding of specific systems:
 | Understand how buttons work | [03_ui_components.md](03_ui_components.md) |
 | Understand the game loop | [01_pygame_fundamentals.md](01_pygame_fundamentals.md) |
 | Understand the battle system | [05_grid_and_battle_system.md](05_grid_and_battle_system.md) |
+| Understand the stat system | [06_stat_system.md](06_stat_system.md) |
 | See complete click flow | [04_data_flow.md](04_data_flow.md#mouse-click-flow---detailed) |
 | Add a new menu option | [02_architecture_overview.md](02_architecture_overview.md#adding-a-new-screen) |
 | Add a new enemy type | [05_grid_and_battle_system.md](05_grid_and_battle_system.md#enemy-classes) |
+| Apply stat modifiers | [06_stat_system.md](06_stat_system.md#usage-examples) |
 
 ### Code Files (with extensive comments)
 
@@ -78,9 +88,10 @@ All code files have been extensively commented:
 - **[ui/title_screen.py](../ui/title_screen.py)** - Title screen with positioning math explained
 - **[combat/grid.py](../combat/grid.py)** - Grid and Tile system with cover mechanics
 - **[combat/battle_screen.py](../combat/battle_screen.py)** - Battle UI and rendering
-- **[entities/unit.py](../entities/unit.py)** - Base unit class with health/sanity
-- **[entities/investigator.py](../entities/investigator.py)** - Player units
+- **[entities/unit.py](../entities/unit.py)** - Base unit class with stat system
+- **[entities/investigator.py](../entities/investigator.py)** - Player units with random names
 - **[entities/enemy.py](../entities/enemy.py)** - Enemy types (Cultist, Hound)
+- **[json/names_data.json](../json/names_data.json)** - Name database (male/female/nicknames)
 
 ---
 
@@ -92,9 +103,10 @@ All code files have been extensively commented:
 2. Run the game and observe: `uv run python main.py`
 3. Read [main.py](../main.py) with comments - See initialization
 4. Read [Architecture Overview](02_architecture_overview.md) - Understand structure
-5. Click "New Game" and explore the battle screen
+5. Click "New Game" and explore the battle screen (note random names!)
 6. Read [Grid and Battle System](05_grid_and_battle_system.md) - Understand the grid
-7. Experiment: Change colors in [config.py](../config.py)
+7. Read [Stat System](06_stat_system.md) - Understand stat modifiers
+8. Experiment: Change colors in [config.py](../config.py) or modify unit stats
 
 ### Intermediate Path (Some Pygame experience)
 
@@ -102,16 +114,19 @@ All code files have been extensively commented:
 2. Read [Architecture Overview](02_architecture_overview.md) - See our approach
 3. Read [UI Components](03_ui_components.md) - Learn our UI system
 4. Read [Grid and Battle System](05_grid_and_battle_system.md) - Understand tactical battle
-5. Read [battle_screen.py](../combat/battle_screen.py) - See complete implementation
-6. Experiment: Modify unit stats or create a new enemy type
+5. Read [Stat System](06_stat_system.md) - Learn modifier pattern
+6. Read [battle_screen.py](../combat/battle_screen.py) - See complete implementation
+7. Experiment: Apply stat modifiers or create a new enemy type
 
 ### Advanced Path (Want to extend the system)
 
 1. Read [Architecture Overview](02_architecture_overview.md#adding-a-new-screen) - Screen pattern
 2. Read [Data Flow](04_data_flow.md) - Understand interaction patterns
 3. Read [Grid and Battle System](05_grid_and_battle_system.md) - Combat system
-4. Implement movement or attack systems (see Next Session in [CLAUDE.md](../CLAUDE.md))
-5. Create a new screen or UI component
+4. Read [Stat System](06_stat_system.md) - Modifier implementation
+5. Implement backgrounds/traits using stat modifiers
+6. Implement movement or attack systems (see Next Session in [CLAUDE.md](../CLAUDE.md))
+7. Create a new screen or UI component
 
 ---
 
@@ -283,8 +298,8 @@ These docs should be updated when:
 - New components are created
 - Performance characteristics change
 
-Last updated: 2025-11-27 (Battle System Complete)
-Version: 0.1.0 (MVP Phase 1 - 70% Complete)
+Last updated: 2025-11-27 (Session 2: Stat System & Name Generation)
+Version: 0.1.0 (MVP Phase 1 - 75% Complete)
 
 ---
 
