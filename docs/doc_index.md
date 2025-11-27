@@ -1,0 +1,276 @@
+# Eldritch Tactics - Code Documentation
+
+Welcome to the Eldritch Tactics code documentation! This folder contains comprehensive guides explaining how the game works, from Pygame-CE fundamentals to detailed data flow diagrams.
+
+## Documentation Overview
+
+### For New Python/Pygame Developers
+
+Start here if you're new to Pygame or game development:
+
+1. **[Pygame-CE Fundamentals](01_pygame_fundamentals.md)**
+   - What is Pygame-CE and how does it work?
+   - The game loop pattern
+   - Core Pygame objects (Surface, Rect, Event, Clock)
+   - RGB colors, coordinate system, and common patterns
+
+### Understanding the Architecture
+
+Once you understand Pygame basics, learn how Eldritch Tactics is structured:
+
+2. **[Architecture Overview](02_architecture_overview.md)**
+   - Project structure and file organization
+   - Design principles (separation of concerns, centralized config)
+   - Module breakdown (config.py, ui_elements.py, title_screen.py, main.py)
+   - How screens work and navigate between each other
+
+### Deep Dives
+
+For detailed understanding of specific systems:
+
+3. **[UI Components Deep Dive](03_ui_components.md)**
+   - How the Button class works internally
+   - Button lifecycle (creation, update, event handling, drawing)
+   - The callback pattern explained
+   - MenuButton inheritance example
+   - Creating custom components
+
+4. **[Data Flow & Interaction Patterns](04_data_flow.md)**
+   - Complete system flow from startup to exit
+   - Mouse click flow (frame-by-frame)
+   - Event propagation (OS → Pygame → Buttons)
+   - Rendering pipeline
+   - State transitions and timing breakdown
+
+---
+
+## Quick Reference
+
+### Where to Find Things
+
+| What You Want | Where to Look |
+|---------------|---------------|
+| Change button width | [config.py](../config.py) line 109 |
+| Change screen resolution | [config.py](../config.py) lines 20-21 |
+| Understand how buttons work | [03_ui_components.md](03_ui_components.md) |
+| Understand the game loop | [01_pygame_fundamentals.md](01_pygame_fundamentals.md) |
+| See complete click flow | [04_data_flow.md](04_data_flow.md#mouse-click-flow---detailed) |
+| Add a new menu option | [02_architecture_overview.md](02_architecture_overview.md#adding-a-new-screen) |
+
+### Code Files (with extensive comments)
+
+All code files have been extensively commented:
+
+- **[config.py](../config.py)** - All game constants with explanations
+- **[main.py](../main.py)** - Entry point with step-by-step comments
+- **[ui/ui_elements.py](../ui/ui_elements.py)** - UI components with detailed explanations
+- **[ui/title_screen.py](../ui/title_screen.py)** - Title screen with positioning math explained
+
+---
+
+## Learning Path
+
+### Beginner Path (Never used Pygame)
+
+1. Read [Pygame Fundamentals](01_pygame_fundamentals.md) - Learn the basics
+2. Run the game and observe: `uv run python main.py`
+3. Read [main.py](../main.py) with comments - See initialization
+4. Read [Architecture Overview](02_architecture_overview.md) - Understand structure
+5. Experiment: Change colors in [config.py](../config.py)
+
+### Intermediate Path (Some Pygame experience)
+
+1. Skim [Pygame Fundamentals](01_pygame_fundamentals.md) - Refresh concepts
+2. Read [Architecture Overview](02_architecture_overview.md) - See our approach
+3. Read [UI Components](03_ui_components.md) - Learn our UI system
+4. Read [title_screen.py](../ui/title_screen.py) - See complete implementation
+5. Experiment: Add a new button to the title screen
+
+### Advanced Path (Want to extend the system)
+
+1. Read [Architecture Overview](02_architecture_overview.md#adding-a-new-screen) - Screen pattern
+2. Read [Data Flow](04_data_flow.md) - Understand interaction patterns
+3. Read [UI Components](03_ui_components.md#creating-custom-components) - Component template
+4. Create a new screen (Settings, Credits, etc.)
+5. Create a new UI component (Slider, Checkbox, etc.)
+
+---
+
+## Key Concepts Explained
+
+### The Game Loop
+
+Every Pygame game follows this pattern (60 times per second):
+
+```
+while running:
+    handle_events()  # Process input
+    update()         # Update state
+    draw()           # Render
+    display.flip()   # Show
+    clock.tick(60)   # Wait for 60 FPS
+```
+
+See: [Pygame Fundamentals - Game Loop](01_pygame_fundamentals.md#the-game-loop-pattern)
+
+### The Callback Pattern
+
+Buttons execute a function when clicked:
+
+```python
+def start_game():
+    print("Starting!")
+
+button = Button(..., on_click=start_game)
+# When clicked, button calls start_game()
+```
+
+See: [UI Components - Callback Pattern](03_ui_components.md#the-callback-pattern)
+
+### Centralized Configuration
+
+All magic numbers go in one file:
+
+```python
+# config.py
+MENU_BUTTON_WIDTH = 400
+
+# Everywhere else:
+button = Button(..., width=config.MENU_BUTTON_WIDTH)
+```
+
+See: [Architecture - Centralized Configuration](02_architecture_overview.md#2-centralized-configuration)
+
+### Screen Navigation
+
+Each screen has a `run()` method that returns where to go next:
+
+```python
+title_screen = TitleScreen(screen)
+next_screen = title_screen.run(clock)  # Returns "new_game", "exit", etc.
+
+if next_screen == "new_game":
+    # Show battle screen
+```
+
+See: [Architecture - How Screens Work](02_architecture_overview.md#how-screens-work)
+
+---
+
+## Common Questions
+
+### How do I add a new button?
+
+1. Create the callback function in the screen class
+2. Create a MenuButton with `on_click=your_function`
+3. Add it to `self.buttons` list
+4. It will automatically be updated and drawn
+
+See: [Architecture - Adding New UI Elements](02_architecture_overview.md#adding-new-ui-elements)
+
+### How do I change colors/sizes?
+
+Edit [config.py](../config.py) - all visual constants are there.
+
+### How do I debug event handling?
+
+Add print statements in `handle_events()`:
+
+```python
+for event in pygame.event.get():
+    print(f"Event: {pygame.event.event_name(event.type)}")
+```
+
+See: [Data Flow - Debugging](04_data_flow.md#debugging-data-flow)
+
+### Why does my button not respond to clicks?
+
+Check:
+1. Is `update()` being called every frame?
+2. Is `handle_event()` being called for each event?
+3. Is the button in the `self.buttons` list?
+4. Is `is_hovered` True when clicking?
+
+See: [UI Components - Button Lifecycle](03_ui_components.md#button-lifecycle)
+
+---
+
+## Visual Aids
+
+### System Architecture
+
+```
+main.py
+  └─ Creates TitleScreen
+      ├─ Contains MenuButtons
+      │   └─ Each has callback
+      └─ Runs game loop
+          ├─ handle_events()
+          ├─ update()
+          ├─ draw()
+          └─ flip() + tick()
+```
+
+### Click Flow
+
+```
+User clicks
+  → OS event
+    → Pygame captures
+      → title_screen.handle_events()
+        → button.handle_event()
+          → Detects click
+            → Calls callback
+              → Sets next_screen
+                → Loop exits
+                  → Returns to main.py
+```
+
+See: [Data Flow - Complete diagrams](04_data_flow.md)
+
+---
+
+## Next Steps
+
+### To Learn More
+
+- **Pygame-CE Official Docs**: https://pyga.me/docs/
+- **Real Python Pygame Tutorial**: https://realpython.com/pygame-a-primer/
+- **UV Package Manager**: https://docs.astral.sh/uv/
+
+### To Contribute
+
+1. Understand the architecture (read docs above)
+2. Check the [main CLAUDE.md](../CLAUDE.md) for development roadmap
+3. Follow the established patterns (screens, components, callbacks)
+4. Add comments explaining your code
+
+### To Extend
+
+The system is designed to be extended:
+
+- Add new screens (Settings, Battle, Campaign)
+- Add new UI components (Slider, Dropdown, Dialog)
+- Add new game features (following Phase 1-5 in CLAUDE.md)
+
+---
+
+## Documentation Maintenance
+
+These docs should be updated when:
+
+- New major features are added
+- Architecture patterns change
+- New components are created
+- Performance characteristics change
+
+Last updated: 2025-11-27
+Version: 0.1.0 (MVP Phase 1)
+
+---
+
+## Feedback
+
+Found something confusing? Have suggestions? These docs are meant to help you understand the code. Let us know what could be clearer!
+
+**Happy coding! 🎲🐙**
