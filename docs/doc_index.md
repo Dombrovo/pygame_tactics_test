@@ -91,7 +91,7 @@ All code files have been extensively commented:
 - **[entities/unit.py](../entities/unit.py)** - Base unit class with stat system
 - **[entities/investigator.py](../entities/investigator.py)** - Player units with random names
 - **[entities/enemy.py](../entities/enemy.py)** - Enemy types (Cultist, Hound)
-- **[json/names_data.json](../json/names_data.json)** - Name database (male/female/nicknames)
+- **[assets/json/names_data.json](../assets/json/names_data.json)** - Name database (male/female/nicknames)
 
 ---
 

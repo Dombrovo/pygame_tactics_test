@@ -95,8 +95,8 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 - ✅ Screen navigation (ESC to menu)
 - ✅ Pixel ↔ grid coordinate conversion
 
-#### 9. Name Generation System (NEW!)
-- ✅ JSON name database (json/names_data.json)
+#### 9. Name Generation System
+- ✅ JSON name database (assets/json/names_data.json)
   - 84 male first names, 84 female first names
   - 90 last names, 113 nicknames
   - 1920s Lovecraftian theme
@@ -106,7 +106,21 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
   - Cached loading for performance
 - ✅ Test suite (testing/test_names.py)
 
-#### 10. Visual Rendering System (NEW!)
+#### 10. Character Portrait System (NEW!)
+- ✅ **Unique image assignment** - Each investigator gets a unique portrait
+  - 25 female character images in `assets/images/investigators/female/`
+  - 30 male character images in `assets/images/investigators/male/`
+- ✅ **No image reuse** - Once assigned, images are never used again
+- ✅ **Pool tracking system**
+  - Global `_USED_IMAGES` tracker prevents duplicates
+  - `get_random_unused_image()` - Assigns random unused portrait
+  - `reset_image_pool()` - Resets for new campaigns
+  - `get_image_pool_status()` - Check available images
+- ✅ **Automatic assignment** - Images assigned in `create_test_squad()`
+- ✅ **Investigator.image_path** attribute stores portrait path
+- ✅ Test suite (testing/test_image_assignment.py)
+
+#### 11. Visual Rendering System
 - ✅ Emoji font support with automatic detection
   - Windows: Segoe UI Emoji
   - macOS: Apple Color Emoji
@@ -119,7 +133,7 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
   - Red for enemy units
 - ✅ Ensures visual clarity across all platforms
 
-#### 11. Documentation
+#### 12. Documentation
 - ✅ Comprehensive inline code comments (all files)
 - ✅ docs/01_pygame_fundamentals.md - Pygame-CE basics
 - ✅ docs/02_architecture_overview.md - System structure
@@ -159,8 +173,10 @@ pygame_tactics_test/
 │   ├── investigator.py       # Player units (random names + gender)
 │   └── enemy.py              # Enemy units (Cultist, Hound)
 │
-├── json/                     # ✅ Data files
-│   └── names_data.json       # Name database (male/female/last/nick)
+├── assets/                   # ✅ Game assets
+│   ├── images/               # Image assets
+│   └── json/                 # Data files
+│       └── names_data.json   # Name database (male/female/last/nick)
 │
 ├── testing/                  # ✅ Test scripts
 │   ├── test_names.py         # Name generation tests
