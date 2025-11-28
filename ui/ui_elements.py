@@ -646,3 +646,314 @@ class Dropdown:
                 text_surface = font.render(option_text, True, config.COLOR_TEXT)
                 text_rect = text_surface.get_rect(center=rect.center)
                 screen.blit(text_surface, text_rect)
+
+
+class InvestigatorTile:
+    """
+    UI tile for displaying investigator stats in battle.
+
+    Shows:
+    - Portrait or symbol
+    - Name
+    - Health bar
+    - Sanity bar
+    - Key stats (accuracy, movement, will)
+    - Selection indicator (yellow border when selected)
+
+    Clickable to select the investigator.
+    """
+
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        investigator,
+        on_click: Optional[Callable] = None
+    ):
+        """
+        Initialize an investigator tile.
+
+        Args:
+            x, y: Top-left position
+            width: Tile width
+            height: Tile height
+            investigator: Reference to Investigator object
+            on_click: Callback when tile is clicked
+        """
+        self.rect = pygame.Rect(x, y, width, height)
+        self.investigator = investigator
+        self.on_click = on_click
+
+        # Visual state
+        self.is_hovered = False
+        self.is_selected = False
+
+        # Portrait area (left side of tile)
+        portrait_size = min(width // 3, height - 10)
+        self.portrait_rect = pygame.Rect(
+            x + 5,
+            y + 5,
+            portrait_size,
+            portrait_size
+        )
+
+        # Portrait image (will try to load from investigator.image_path)
+        self.portrait_image = None
+        if hasattr(investigator, 'image_path') and investigator.image_path:
+            try:
+                # Try to load the portrait image
+                from pathlib import Path
+                image_path = Path(investigator.image_path)
+                if image_path.exists():
+                    self.portrait_image = pygame.image.load(str(image_path))
+                    # Scale to fit portrait area
+                    self.portrait_image = pygame.transform.scale(
+                        self.portrait_image,
+                        (portrait_size, portrait_size)
+                    )
+            except Exception as e:
+                print(f"Failed to load portrait for {investigator.name}: {e}")
+                self.portrait_image = None
+
+        # Stats area (right side of tile)
+        self.stats_x = x + portrait_size + 15
+        self.stats_y = y + 10
+
+        # Bar dimensions
+        self.bar_width = width - portrait_size - 25
+        self.bar_height = 12
+
+    def update(self, mouse_pos: Tuple[int, int]) -> None:
+        """Update hover state based on mouse position."""
+        self.is_hovered = self.rect.collidepoint(mouse_pos)
+
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """
+        Handle mouse clicks on the tile.
+
+        Returns:
+            True if tile was clicked, False otherwise
+        """
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.is_hovered:
+                # Execute callback if provided
+                if self.on_click:
+                    self.on_click(self.investigator)
+                return True
+        return False
+
+    def set_selected(self, selected: bool) -> None:
+        """Set the selection state of this tile."""
+        self.is_selected = selected
+
+    def draw(self, screen: pygame.Surface) -> None:
+        """
+        Draw the investigator tile.
+
+        Shows portrait, name, health/sanity bars, and stats.
+        """
+        # Background color (darker if incapacitated)
+        if self.investigator.is_incapacitated:
+            bg_color = (20, 20, 25)
+        elif self.is_hovered:
+            bg_color = config.COLOR_MENU_BUTTON_HOVER
+        else:
+            bg_color = config.COLOR_UI_BG
+
+        # Draw background
+        pygame.draw.rect(screen, bg_color, self.rect)
+
+        # Draw border (yellow if selected, red if incapacitated, normal otherwise)
+        if self.is_selected:
+            border_color = config.COLOR_SELECTED
+            border_width = 4
+        elif self.investigator.is_incapacitated:
+            border_color = (100, 30, 30)  # Dark red
+            border_width = 2
+        else:
+            border_color = config.COLOR_MENU_BORDER
+            border_width = 2
+
+        pygame.draw.rect(screen, border_color, self.rect, border_width)
+
+        # Draw portrait or symbol
+        if self.portrait_image:
+            # Draw the loaded portrait image
+            screen.blit(self.portrait_image, self.portrait_rect)
+            # Draw border around portrait
+            pygame.draw.rect(screen, config.COLOR_MENU_BORDER, self.portrait_rect, 1)
+        else:
+            # Draw symbol as fallback
+            # Fill portrait area with dark background
+            pygame.draw.rect(screen, (30, 30, 40), self.portrait_rect)
+            pygame.draw.rect(screen, config.COLOR_MENU_BORDER, self.portrait_rect, 1)
+
+            # Draw emoji symbol centered
+            symbol_font = pygame.font.Font(None, 48)
+            symbol_surface = symbol_font.render(
+                self.investigator.symbol,
+                True,
+                config.COLOR_PLAYER
+            )
+            symbol_rect = symbol_surface.get_rect(center=self.portrait_rect.center)
+            screen.blit(symbol_surface, symbol_rect)
+
+        # Draw name split over two lines (larger font for bigger tiles)
+        # Line 1: First name + nickname (if present)
+        # Line 2: Last name
+        name_font = pygame.font.Font(None, 38)  # Slightly smaller to fit 2 lines
+        name_color = config.COLOR_TEXT_DIM if self.investigator.is_incapacitated else config.COLOR_TEXT
+
+        # Parse name into first name (+ nickname) and last name
+        # Format can be "First Last" or "First 'Nick' Last"
+        full_name = self.investigator.name
+        name_parts = full_name.split()
+
+        # Check if there's a nickname (indicated by quotes)
+        has_nickname = any("'" in part for part in name_parts)
+
+        if has_nickname:
+            # Find the last name (everything after the closing quote)
+            # Example: "Arthur 'Bones' Blackwood" -> ["Arthur", "'Bones'", "Blackwood"]
+            quote_end_idx = None
+            for i, part in enumerate(name_parts):
+                if part.endswith("'"):
+                    quote_end_idx = i
+                    break
+
+            if quote_end_idx is not None and quote_end_idx + 1 < len(name_parts):
+                # Line 1: First name + nickname
+                first_line = " ".join(name_parts[:quote_end_idx + 1])
+                # Line 2: Last name (everything after nickname)
+                second_line = " ".join(name_parts[quote_end_idx + 1:])
+            else:
+                # Fallback: just split in half
+                mid = len(name_parts) // 2
+                first_line = " ".join(name_parts[:mid])
+                second_line = " ".join(name_parts[mid:])
+        else:
+            # No nickname: "First Last" or "First Middle Last"
+            if len(name_parts) >= 2:
+                # First name on line 1, last name on line 2
+                first_line = " ".join(name_parts[:-1])  # Everything except last word
+                second_line = name_parts[-1]  # Last word
+            else:
+                # Single word name (shouldn't happen, but handle it)
+                first_line = full_name
+                second_line = ""
+
+        # Draw first line (first name + optional nickname)
+        first_line_surface = name_font.render(first_line, True, name_color)
+        screen.blit(first_line_surface, (self.stats_x, self.stats_y))
+
+        # Draw second line (last name) slightly below
+        if second_line:
+            second_line_surface = name_font.render(second_line, True, name_color)
+            screen.blit(second_line_surface, (self.stats_x, self.stats_y + 32))  # 32px below first line
+
+        # Draw health bar (larger bars for bigger tiles)
+        # Adjusted to account for two-line name
+        hp_y = self.stats_y + 70  # More spacing to fit 2 lines of text (was 50)
+        # Bar dimensions will be larger due to increased tile size
+        self._draw_resource_bar(
+            screen,
+            self.stats_x,
+            hp_y,
+            self.bar_width,
+            int(self.bar_height * 1.3),  # Slightly taller bars
+            self.investigator.current_health,
+            self.investigator.max_health,
+            (200, 50, 50),  # Red
+            "HP"
+        )
+
+        # Draw sanity bar
+        san_y = hp_y + int(self.bar_height * 1.3) + 12  # More spacing (was 8)
+        self._draw_resource_bar(
+            screen,
+            self.stats_x,
+            san_y,
+            self.bar_width,
+            int(self.bar_height * 1.3),  # Slightly taller bars
+            self.investigator.current_sanity,
+            self.investigator.max_sanity,
+            (80, 120, 200),  # Blue
+            "SAN"
+        )
+
+        # Draw compact stats (accuracy, movement, will) with larger font
+        stats_y = san_y + int(self.bar_height * 1.3) + 18  # More spacing (was 12)
+        stat_font = pygame.font.Font(None, 32)  # Increased from 24
+
+        # Accuracy
+        acc_text = f"ACC:{self.investigator.accuracy}%"
+        acc_color = config.COLOR_TEXT_DIM if self.investigator.is_incapacitated else config.COLOR_TEXT
+        acc_surface = stat_font.render(acc_text, True, acc_color)
+        screen.blit(acc_surface, (self.stats_x, stats_y))
+
+        # Movement (more spacing for larger tiles)
+        move_text = f"MOV:{self.investigator.movement_range}"
+        move_surface = stat_font.render(move_text, True, acc_color)
+        screen.blit(move_surface, (self.stats_x + 105, stats_y))  # Increased from 75
+
+        # Will
+        will_text = f"WIL:{self.investigator.will}"
+        will_surface = stat_font.render(will_text, True, acc_color)
+        screen.blit(will_surface, (self.stats_x + 200, stats_y))  # Increased from 140
+
+        # Draw incapacitated warning if needed (larger font)
+        if self.investigator.is_incapacitated:
+            warning_font = pygame.font.Font(None, 38)  # Increased from 28
+            warning_surface = warning_font.render(
+                "INCAPACITATED",
+                True,
+                (200, 50, 50)
+            )
+            warning_rect = warning_surface.get_rect(
+                center=(self.rect.centerx, self.rect.bottom - 20)  # More margin
+            )
+            screen.blit(warning_surface, warning_rect)
+
+    def _draw_resource_bar(
+        self,
+        screen: pygame.Surface,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        current: int,
+        maximum: int,
+        bar_color: Tuple[int, int, int],
+        label: str
+    ) -> None:
+        """
+        Draw a resource bar (health or sanity).
+
+        Args:
+            screen: Surface to draw on
+            x, y: Top-left position
+            width, height: Bar dimensions
+            current: Current value
+            maximum: Maximum value
+            bar_color: RGB color for filled portion
+            label: Text label (e.g., "HP", "SAN")
+        """
+        # Background (empty bar)
+        bg_rect = pygame.Rect(x, y, width, height)
+        pygame.draw.rect(screen, (40, 40, 50), bg_rect)
+        pygame.draw.rect(screen, (80, 80, 90), bg_rect, 1)
+
+        # Filled portion (current value)
+        if maximum > 0:
+            fill_width = int((current / maximum) * width)
+            fill_rect = pygame.Rect(x, y, fill_width, height)
+            pygame.draw.rect(screen, bar_color, fill_rect)
+
+        # Draw text (e.g., "HP: 12/15") with larger font for bigger tiles
+        text_font = pygame.font.Font(None, 30)  # Increased from 22
+        text = f"{label}: {current}/{maximum}"
+        text_surface = text_font.render(text, True, config.COLOR_TEXT)
+        text_rect = text_surface.get_rect(center=(x + width // 2, y + height // 2))
+        screen.blit(text_surface, text_rect)

@@ -12,6 +12,7 @@ from combat.grid import Grid
 from entities.unit import Unit
 from entities.investigator import Investigator, create_test_squad
 from entities.enemy import Enemy, create_test_enemies
+from ui.ui_elements import InvestigatorTile
 
 
 class BattleScreen:
@@ -117,6 +118,36 @@ class BattleScreen:
             self.font_small = pygame.font.Font(None, 36)
             # Replace cover emoji (⬛, ▪️) with ASCII (##, ::)
             self._use_text_cover_symbols()
+
+        # ====================================================================
+        # Investigator Tiles Panel (Left Side)
+        # ====================================================================
+        # Create UI tiles for each investigator, displayed vertically on left
+        # Each tile shows: portrait, name, HP bar, sanity bar, stats
+        # Tiles are clickable for selection
+        self.investigator_tiles: List[InvestigatorTile] = []
+
+        # Panel layout (left side of screen)
+        # Tiles increased by 50% and spacing widened to use full vertical space
+        tile_panel_x = 20  # 20px from left edge
+        tile_panel_y = self.grid_offset_y  # Align with grid top
+        tile_width = 510   # 50% larger (340 * 1.5)
+        tile_height = 180  # 50% larger (120 * 1.5)
+        tile_spacing = 25  # Widened gap (distributes 4 tiles across ~800px vertical space)
+
+        # Create one tile for each investigator
+        for i, investigator in enumerate(self.player_units):
+            tile_y = tile_panel_y + (i * (tile_height + tile_spacing))
+
+            tile = InvestigatorTile(
+                x=tile_panel_x,
+                y=tile_y,
+                width=tile_width,
+                height=tile_height,
+                investigator=investigator,
+                on_click=self._on_investigator_tile_click
+            )
+            self.investigator_tiles.append(tile)
 
     def _use_text_symbols(self):
         """
@@ -231,8 +262,16 @@ class BattleScreen:
                 elif event.key == pygame.K_TAB:
                     self._cycle_unit_selection()
 
+            # Handle investigator tile events (must be before grid clicks)
+            # This allows clicking on tiles to select investigators
+            for tile in self.investigator_tiles:
+                if tile.handle_event(event):
+                    # Tile was clicked, event consumed
+                    # Selection is handled in _on_investigator_tile_click callback
+                    continue
+
             # Mouse events
-            elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left click
                     self._handle_left_click(event.pos)
 
@@ -276,7 +315,39 @@ class BattleScreen:
             # (Can't select enemies or units during enemy phase)
             if self.current_phase == "player_turn" and unit.team == "player":
                 self.selected_unit = unit
+                self._update_tile_selection()
                 print(f"Selected: {unit.name}")
+
+    def _on_investigator_tile_click(self, investigator: Investigator):
+        """
+        Callback when an investigator tile is clicked.
+
+        This is called by InvestigatorTile when the user clicks on it.
+
+        Args:
+            investigator: The investigator whose tile was clicked
+        """
+        # Only allow selection during player turn
+        if self.current_phase != "player_turn":
+            return
+
+        # Select the investigator
+        self.selected_unit = investigator
+        self._update_tile_selection()
+        print(f"Selected: {investigator.name}")
+
+    def _update_tile_selection(self):
+        """
+        Update visual selection state of all investigator tiles.
+
+        Called when selection changes (either from tile click or grid click).
+        Ensures only the selected investigator's tile shows as selected.
+        """
+        for tile in self.investigator_tiles:
+            if tile.investigator == self.selected_unit:
+                tile.set_selected(True)
+            else:
+                tile.set_selected(False)
 
     def _pixel_to_grid(self, pixel_pos: Tuple[int, int]) -> Tuple[Optional[int], Optional[int]]:
         """
@@ -400,6 +471,9 @@ class BattleScreen:
             # Select first active unit
             self.selected_unit = active_units[0]
 
+        # Update tile selection to match
+        self._update_tile_selection()
+
         print(f"Selected: {self.selected_unit.name}")
 
     def _end_turn(self):
@@ -471,6 +545,10 @@ class BattleScreen:
         # Get mouse position for hover effects
         self.mouse_pos = pygame.mouse.get_pos()
 
+        # Update investigator tiles (hover effects)
+        for tile in self.investigator_tiles:
+            tile.update(self.mouse_pos)
+
     def _check_win_lose(self):
         """
         Check if battle is won or lost.
@@ -518,6 +596,10 @@ class BattleScreen:
 
         # Draw UI header
         self._draw_header()
+
+        # Draw investigator tiles panel (left side)
+        for tile in self.investigator_tiles:
+            tile.draw(self.screen)
 
         # Draw grid
         self._draw_grid()

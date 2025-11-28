@@ -2,6 +2,20 @@
 
 Welcome to the Eldritch Tactics code documentation! This folder contains comprehensive guides explaining how the game works, from Pygame-CE fundamentals to detailed data flow diagrams.
 
+---
+
+## Quick Start
+
+**New to the project?** Start with these files:
+
+- **[CLAUDE.md](../CLAUDE.md)** - **START HERE** - Current project state, completed features, UV usage
+- **[PLAN.md](../PLAN.md)** - Future roadmap, planned features (Phases 2-5)
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Developer guidelines, code style, how to contribute
+
+**Want to understand the code?** Read the guides below:
+
+---
+
 ## Documentation Overview
 
 ### For New Python/Pygame Developers
@@ -84,8 +98,9 @@ All code files have been extensively commented:
 
 - **[config.py](../config.py)** - All game constants with explanations
 - **[main.py](../main.py)** - Entry point with step-by-step comments
-- **[ui/ui_elements.py](../ui/ui_elements.py)** - UI components with detailed explanations
+- **[ui/ui_elements.py](../ui/ui_elements.py)** - UI components (Button, MenuButton, TextLabel, InvestigatorTile)
 - **[ui/title_screen.py](../ui/title_screen.py)** - Title screen with positioning math explained
+- **[ui/settings_screen.py](../ui/settings_screen.py)** - Settings menu
 - **[combat/grid.py](../combat/grid.py)** - Grid and Tile system with cover mechanics
 - **[combat/battle_screen.py](../combat/battle_screen.py)** - Battle UI, emoji font system, and rendering
 - **[entities/unit.py](../entities/unit.py)** - Base unit class with stat system
@@ -274,10 +289,11 @@ See: [Data Flow - Complete diagrams](04_data_flow.md)
 
 ### To Contribute
 
-1. Understand the architecture (read docs above)
-2. Check the [main CLAUDE.md](../CLAUDE.md) for development roadmap
-3. Follow the established patterns (screens, components, callbacks)
-4. Add comments explaining your code
+1. Read **[CONTRIBUTING.md](../CONTRIBUTING.md)** for code style and conventions
+2. Check **[CLAUDE.md](../CLAUDE.md)** for current state
+3. Check **[PLAN.md](../PLAN.md)** for future roadmap
+4. Follow established patterns (screens, components, callbacks)
+5. Add comments explaining your code
 
 ### To Extend
 
@@ -285,7 +301,11 @@ The system is designed to be extended:
 
 - Add new screens (Settings, Battle, Campaign)
 - Add new UI components (Slider, Dropdown, Dialog)
-- Add new game features (following Phase 1-5 in CLAUDE.md)
+- Add new game features (following Phases 1-5 in PLAN.md)
+
+### Development History
+
+- **[session_archive.md](session_archive.md)** - Previous development sessions (Session 2 & 3)
 
 ---
 
@@ -298,7 +318,7 @@ These docs should be updated when:
 - New components are created
 - Performance characteristics change
 
-Last updated: 2025-11-28 (Session 3: Visual Rendering System)
+Last updated: 2025-11-29 (Session 4: Investigator Tiles Panel)
 Version: 0.1.0 (MVP Phase 1 - 75% Complete)
 
 ---
