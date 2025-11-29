@@ -13,7 +13,7 @@ from combat.grid import Grid
 from entities.unit import Unit
 from entities.investigator import Investigator, create_test_squad
 from entities.enemy import Enemy, create_test_enemies
-from ui.ui_elements import InvestigatorTile, ActionBar, Button
+from ui.ui_elements import InvestigatorTile, ActionBar, Button, TurnOrderTracker
 
 
 class BattleScreen:
@@ -81,7 +81,7 @@ class BattleScreen:
         # Calculate grid rendering offset (center on screen)
         self.grid_pixel_size = config.GRID_SIZE * config.TILE_SIZE
         self.grid_offset_x = (config.SCREEN_WIDTH - self.grid_pixel_size) // 2
-        self.grid_offset_y = 100  # Leave space at top for UI
+        # grid_offset_y will be set after turn order tracker is created
 
         # ====================================================================
         # Font system with emoji support
@@ -135,6 +135,29 @@ class BattleScreen:
             self.font_small = pygame.font.Font(None, 36)
             # Replace cover emoji (⬛, ▪️) with ASCII (##, ::)
             self._use_text_cover_symbols()
+
+        # ====================================================================
+        # Turn Order Tracker (Top of Screen)
+        # ====================================================================
+        # Visual display of the turn order, showing all units in sequence
+        # with the current turn unit highlighted
+        # MUST be created before investigator tiles and grid positioning
+        tracker_height = 70
+        tracker_width = 1200  # Wide enough to fit 8 unit icons with spacing
+        tracker_x = (config.SCREEN_WIDTH - tracker_width) // 2  # Centered
+        tracker_y = 10  # 10px from top
+
+        self.turn_order_tracker = TurnOrderTracker(
+            x=tracker_x,
+            y=tracker_y,
+            width=tracker_width,
+            height=tracker_height
+        )
+        # Will be populated with turn order after units are created
+
+        # Update grid offset to make room for turn order tracker
+        # This affects both the grid and investigator tiles positioning
+        self.grid_offset_y = tracker_y + tracker_height + 15  # 15px gap below tracker
 
         # ====================================================================
         # Investigator Tiles Panel (Left Side)
@@ -199,6 +222,12 @@ class BattleScreen:
             text="End Turn",
             on_click=self._advance_turn
         )
+
+        # ====================================================================
+        # Initialize Turn Order Tracker Data
+        # ====================================================================
+        # Now that turn order is established, populate the tracker
+        self.turn_order_tracker.update_turn_order(self.turn_order, self.current_turn_index)
 
         # ====================================================================
         # Initialize First Turn
@@ -641,6 +670,9 @@ class BattleScreen:
         self._update_tile_selection()
         self._update_action_bar()
 
+        # Update turn order tracker with new current turn index
+        self.turn_order_tracker.update_turn_order(self.turn_order, self.current_turn_index)
+
         # Update current_phase for compatibility (deprecated)
         self.current_phase = "player_turn" if self.current_turn_unit.team == "player" else "enemy_turn"
 
@@ -724,6 +756,9 @@ class BattleScreen:
         # Get mouse position for hover effects
         self.mouse_pos = pygame.mouse.get_pos()
 
+        # Update turn order tracker (hover effects for tooltips)
+        self.turn_order_tracker.update(self.mouse_pos)
+
         # Update investigator tiles (hover effects)
         for tile in self.investigator_tiles:
             tile.update(self.mouse_pos)
@@ -779,8 +814,9 @@ class BattleScreen:
         # Clear screen
         self.screen.fill(config.COLOR_BG)
 
-        # Draw UI header
-        self._draw_header()
+        # Draw turn order tracker (top of screen)
+        # This now displays current turn info, so no separate header needed
+        self.turn_order_tracker.draw(self.screen)
 
         # Draw investigator tiles panel (left side)
         for tile in self.investigator_tiles:

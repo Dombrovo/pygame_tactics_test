@@ -19,8 +19,8 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 
 ## Current Development State
 
-**Last Updated**: 2025-11-29 (Session 5)
-**Current Phase**: Phase 1 - MVP (~80% Complete - Turn Order Complete, Combat Mechanics Next)
+**Last Updated**: 2025-11-29 (Session 6)
+**Current Phase**: Phase 1 - MVP (~80% Complete - Turn Order Tracker Complete, Combat Mechanics Next)
 
 ### ✅ Completed Components
 
@@ -54,6 +54,7 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 - ✅ InvestigatorTile class (status panel component)
 - ✅ ActionButton class (action bar slot component)
 - ✅ ActionBar class (10-slot ability/action bar)
+- ✅ TurnOrderTracker class (visual turn sequence display)
 - ✅ Callback pattern implementation
 
 #### 4. Title Screen
@@ -193,13 +194,35 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
   - Shows actions only for current turn unit
   - Selecting other units doesn't change action bar
   - Enforces proper turn structure
-- ✅ Enhanced header display
-  - Shows: "ROUND X | Player/Enemy Turn: Unit Name"
-  - Clear visual indicator of whose turn it is
 - ✅ Turn order debugging
   - Console output shows full turn order at battle start
   - Turn advancement messages for development
   - Comprehensive test suite (`testing/test_turn_order.py`)
+
+#### 16. Turn Order Tracker (Session 6)
+- ✅ TurnOrderTracker UI component (1200×70px, top of screen)
+  - Horizontal bar displaying all 8 units in turn sequence
+  - Unit icons: Investigators show portrait images, Enemies show emoji symbols
+  - Current turn highlight (green border, 4px thick)
+  - Hover highlight (golden border, 3px thick)
+  - Team color coding (blue background for players, red for enemies)
+  - Mini health bars at bottom of each icon (color-coded: green/yellow/red)
+  - Portrait image caching for performance
+- ✅ Integrated turn display
+  - "TURN ORDER:" label at top-left
+  - Current turn info below label: "Player: Name" or "Enemy: Name"
+  - Golden highlighted text for current turn
+  - Replaces redundant battle header (removed)
+- ✅ Battle screen integration
+  - Positioned at y=10 (top of screen)
+  - Grid offset adjusted to y=95 (was 100) to accommodate tracker
+  - Updates automatically when turns advance
+  - No tooltips needed - info shown in fixed location
+- ✅ Visual benefits
+  - At-a-glance turn sequence visibility
+  - Character recognition via portraits
+  - Clean visual hierarchy (portraits vs symbols)
+  - Always-visible current turn information
 
 ### 🚧 In Progress
 
@@ -219,7 +242,7 @@ pygame_tactics_test/
 ├── CONTRIBUTING.md            # Developer guidelines
 │
 ├── ui/                        # UI Framework
-│   ├── ui_elements.py         # Button, MenuButton, TextLabel, InvestigatorTile
+│   ├── ui_elements.py         # Button, MenuButton, TextLabel, InvestigatorTile, ActionBar, TurnOrderTracker
 │   ├── title_screen.py        # Title screen
 │   └── settings_screen.py     # Settings menu
 │
@@ -332,7 +355,11 @@ Successfully implemented a comprehensive investigator status panel for enhanced 
 
 **Visual Layout** (1920×1080):
 ```
-┌─────────────────┬──────────────┬─────────────────────────┐
+┌──────────────────────────────────────────────────────────┐
+│  TURN ORDER:                                             │
+│  Player: Name    [🖼️] [🔫] [🖼️] [🐺] [🖼️] [🔫] [🖼️] [🐺]     │
+│                     ↑ Green border (70px tall)           │
+├─────────────────┬──────────────┬─────────────────────────┤
 │ [Tile 1: 510px] │              │  SELECTED UNIT INFO     │
 │   180px tall    │              │  (Right panel)          │
 │ [gap: 25px]     │              │                         │
@@ -345,6 +372,10 @@ Successfully implemented a comprehensive investigator status panel for enhanced 
 │ [Tile 4: 510px] │              │                         │
 │   180px tall    │              │                         │
 └─────────────────┴──────────────┴─────────────────────────┘
+         ┌────────────────────┬───────────┐
+         │    ACTION BAR      │ End Turn  │
+         │ [1][2][3]...[0]    │  Button   │
+         └────────────────────┴───────────┘
 ```
 
 **Impact**:

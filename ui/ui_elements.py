@@ -13,7 +13,7 @@ Key Concepts Demonstrated:
 """
 
 import pygame
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, List
 import config
 
 
@@ -1106,6 +1106,240 @@ class ActionButton:
             hotkey_color = config.COLOR_TEXT_HIGHLIGHT if self.enabled else config.COLOR_TEXT_DIM
             hotkey_surface = hotkey_font.render(self.hotkey, True, hotkey_color)
             screen.blit(hotkey_surface, (self.rect.x + 3, self.rect.y + 2))
+
+
+class TurnOrderTracker:
+    """
+    Visual turn order tracker for displaying the sequence of unit turns.
+
+    Shows all units in turn order horizontally at the top of the screen,
+    with the current turn unit highlighted. Each unit is represented by a
+    small icon/symbol with team color coding.
+    """
+
+    def __init__(self, x: int, y: int, width: int, height: int):
+        """
+        Initialize the turn order tracker.
+
+        Args:
+            x, y: Top-left position
+            width: Total width of the tracker
+            height: Height of the tracker (and unit icons)
+        """
+        self.rect = pygame.Rect(x, y, width, height)
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+        # Turn order data
+        self.turn_order = []  # List of Unit objects in turn order
+        self.current_turn_index = 0
+
+        # Visual settings
+        self.icon_size = height - 10  # Slightly smaller than height for padding
+        self.icon_spacing = 8  # Space between icons
+        self.hovered_unit = None  # Track which unit is being hovered
+
+        # Portrait image cache for investigators
+        self.portrait_cache = {}  # Maps unit -> pygame.Surface
+
+    def update_turn_order(self, turn_order: List, current_turn_index: int) -> None:
+        """
+        Update the turn order display.
+
+        Args:
+            turn_order: List of Unit objects in turn order
+            current_turn_index: Index of the current turn unit
+        """
+        self.turn_order = turn_order
+        self.current_turn_index = current_turn_index
+
+    def update(self, mouse_pos: Tuple[int, int]) -> None:
+        """
+        Update hover state to show unit names on hover.
+
+        Args:
+            mouse_pos: Current mouse position
+        """
+        # Check if mouse is over any unit icon
+        self.hovered_unit = None
+
+        if not self.turn_order:
+            return
+
+        # Calculate icon positions and check for hover
+        total_icons = len(self.turn_order)
+        total_width_needed = (self.icon_size * total_icons) + (self.icon_spacing * (total_icons - 1))
+
+        # Center the icons within the tracker width
+        start_x = self.x + (self.width - total_width_needed) // 2
+
+        for i, unit in enumerate(self.turn_order):
+            icon_x = start_x + (i * (self.icon_size + self.icon_spacing))
+            icon_y = self.y + 5  # Small top padding
+
+            icon_rect = pygame.Rect(icon_x, icon_y, self.icon_size, self.icon_size)
+
+            if icon_rect.collidepoint(mouse_pos):
+                self.hovered_unit = unit
+                break
+
+    def draw(self, screen: pygame.Surface) -> None:
+        """
+        Draw the turn order tracker.
+
+        Shows all units in order with the current turn highlighted.
+        """
+        # Draw background panel
+        pygame.draw.rect(screen, config.COLOR_UI_BG, self.rect)
+        pygame.draw.rect(screen, config.COLOR_MENU_BORDER, self.rect, 2)
+
+        # Draw "TURN ORDER:" label at the top
+        label_font = pygame.font.Font(None, 26)
+        label_surface = label_font.render("TURN ORDER:", True, config.COLOR_TEXT)
+        screen.blit(label_surface, (self.x + 10, self.y + 8))
+
+        # Draw current turn info below the label
+        if self.turn_order and 0 <= self.current_turn_index < len(self.turn_order):
+            current_unit = self.turn_order[self.current_turn_index]
+            info_font = pygame.font.Font(None, 22)
+            team_text = "Player" if current_unit.team == "player" else "Enemy"
+            info_text = f"{team_text}: {current_unit.name}"
+            info_surface = info_font.render(info_text, True, config.COLOR_TEXT_HIGHLIGHT)
+            screen.blit(info_surface, (self.x + 10, self.y + 35))
+
+        if not self.turn_order:
+            return
+
+        # Calculate how many icons we can fit and their positions
+        total_icons = len(self.turn_order)
+        total_width_needed = (self.icon_size * total_icons) + (self.icon_spacing * (total_icons - 1))
+
+        # Center the icons within the tracker width (accounting for label)
+        label_width = 280  # Space reserved for label + current turn info
+        available_width = self.width - label_width - 20
+        start_x = self.x + label_width + (available_width - total_width_needed) // 2
+
+        # Draw each unit icon in turn order
+        for i, unit in enumerate(self.turn_order):
+            icon_x = start_x + (i * (self.icon_size + self.icon_spacing))
+            icon_y = self.y + 5  # Small top padding
+
+            self._draw_unit_icon(screen, unit, icon_x, icon_y, i == self.current_turn_index)
+
+        # Tooltip disabled - info shown in left side label instead
+
+    def _draw_unit_icon(
+        self,
+        screen: pygame.Surface,
+        unit,
+        x: int,
+        y: int,
+        is_current_turn: bool
+    ) -> None:
+        """
+        Draw a single unit icon in the turn order.
+
+        Args:
+            screen: Surface to draw on
+            unit: Unit object to represent
+            x, y: Top-left position of the icon
+            is_current_turn: Whether this is the current turn unit
+        """
+        icon_rect = pygame.Rect(x, y, self.icon_size, self.icon_size)
+
+        # Determine background color based on team
+        if unit.team == "player":
+            bg_color = (40, 60, 100)  # Dark blue
+            border_color = config.COLOR_PLAYER  # Bright blue
+        else:
+            bg_color = (100, 40, 40)  # Dark red
+            border_color = config.COLOR_ENEMY  # Bright red
+
+        # Draw background (darker if incapacitated)
+        if unit.is_incapacitated:
+            bg_color = (30, 30, 35)  # Very dark gray
+            border_color = (60, 60, 65)  # Dim border
+
+        pygame.draw.rect(screen, bg_color, icon_rect)
+
+        # Draw border (extra thick and green if current turn)
+        if is_current_turn:
+            border_color = config.COLOR_CURRENT_TURN  # Green
+            border_width = 4
+        elif self.hovered_unit == unit:
+            border_color = config.COLOR_TEXT_HIGHLIGHT  # Golden
+            border_width = 3
+        else:
+            border_width = 2
+
+        pygame.draw.rect(screen, border_color, icon_rect, border_width)
+
+        # Draw portrait image for investigators, emoji for enemies
+        if unit.team == "player" and hasattr(unit, 'image_path') and unit.image_path:
+            # Try to load investigator portrait image
+            if unit not in self.portrait_cache:
+                try:
+                    from pathlib import Path
+                    image_path = Path(unit.image_path)
+                    if image_path.exists():
+                        portrait = pygame.image.load(str(image_path))
+                        # Scale to fit icon size (with small padding for border)
+                        portrait = pygame.transform.scale(portrait, (self.icon_size - 8, self.icon_size - 8))
+                        self.portrait_cache[unit] = portrait
+                    else:
+                        self.portrait_cache[unit] = None
+                except Exception as e:
+                    print(f"Failed to load portrait for {unit.name}: {e}")
+                    self.portrait_cache[unit] = None
+
+            # Draw cached portrait if available
+            if self.portrait_cache.get(unit):
+                portrait_x = x + 4  # 4px padding for border
+                portrait_y = y + 4
+                screen.blit(self.portrait_cache[unit], (portrait_x, portrait_y))
+            else:
+                # Fallback to symbol if image load failed
+                symbol_font = pygame.font.Font(None, self.icon_size - 10)
+                symbol_color = config.COLOR_TEXT if not unit.is_incapacitated else config.COLOR_TEXT_DIM
+                symbol_surface = symbol_font.render(unit.symbol, True, symbol_color)
+                symbol_rect = symbol_surface.get_rect(center=icon_rect.center)
+                screen.blit(symbol_surface, symbol_rect)
+        else:
+            # Draw unit symbol/emoji for enemies (centered in icon)
+            symbol_font = pygame.font.Font(None, self.icon_size - 10)
+            symbol_color = config.COLOR_TEXT if not unit.is_incapacitated else config.COLOR_TEXT_DIM
+            symbol_surface = symbol_font.render(unit.symbol, True, symbol_color)
+            symbol_rect = symbol_surface.get_rect(center=icon_rect.center)
+            screen.blit(symbol_surface, symbol_rect)
+
+        # Draw small health indicator at the bottom
+        if not unit.is_incapacitated:
+            health_bar_width = self.icon_size - 4
+            health_bar_height = 4
+            health_bar_x = x + 2
+            health_bar_y = y + self.icon_size - 6
+
+            # Background
+            health_bg_rect = pygame.Rect(health_bar_x, health_bar_y, health_bar_width, health_bar_height)
+            pygame.draw.rect(screen, (40, 40, 50), health_bg_rect)
+
+            # Filled portion (health percentage)
+            health_pct = unit.current_health / unit.max_health if unit.max_health > 0 else 0
+            health_fill_width = int(health_bar_width * health_pct)
+            health_fill_rect = pygame.Rect(health_bar_x, health_bar_y, health_fill_width, health_bar_height)
+
+            # Color based on health percentage
+            if health_pct > 0.6:
+                health_color = (80, 200, 80)  # Green
+            elif health_pct > 0.3:
+                health_color = (200, 200, 80)  # Yellow
+            else:
+                health_color = (200, 80, 80)  # Red
+
+            pygame.draw.rect(screen, health_color, health_fill_rect)
+
 
 
 class ActionBar:

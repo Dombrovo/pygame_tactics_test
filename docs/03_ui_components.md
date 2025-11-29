@@ -12,6 +12,7 @@ The `ui/ui_elements.py` module provides reusable UI components:
 4. **InvestigatorTile** - Battle screen status tile for investigators
 5. **ActionButton** - Action bar slot button with hotkey support
 6. **ActionBar** - 10-slot ability/action bar for battle screen
+7. **TurnOrderTracker** - Visual turn order sequence display for battle screen
 
 ---
 
@@ -859,6 +860,232 @@ class ActionButton:
             text = font.render(str(self.cooldown_remaining), True, (255, 255, 255))
             screen.blit(text, self.rect.center)
 ```
+
+---
+
+## TurnOrderTracker Class
+
+### Purpose
+
+The TurnOrderTracker displays the turn order sequence at the top of the battle screen, showing all units in their turn order with visual indicators for the current turn.
+
+### Key Features
+
+1. **Visual turn sequence** - All 8 units displayed horizontally
+2. **Portrait integration** - Investigators show character portraits, enemies show emoji symbols
+3. **Current turn display** - Green border highlights active unit, turn info shown in label
+4. **Team color coding** - Blue backgrounds for players, red for enemies
+5. **Mini health bars** - Color-coded health indicators at bottom of each icon
+6. **Portrait caching** - Images loaded once and reused for performance
+
+### Anatomy
+
+```python
+tracker = TurnOrderTracker(
+    x=360,           # Left edge position (centered on screen)
+    y=10,            # Top of screen
+    width=1200,      # Wide enough for 8 unit icons with spacing
+    height=70        # Height of tracker bar
+)
+
+# Populate with turn order
+tracker.update_turn_order(turn_order=[...], current_turn_index=0)
+```
+
+### Internal Structure
+
+```python
+class TurnOrderTracker:
+    # Position and size
+    self.rect = pygame.Rect(x, y, width, height)
+
+    # Turn order data
+    self.turn_order = []  # List of Unit objects in turn sequence
+    self.current_turn_index = 0  # Index of current turn unit
+
+    # Visual settings
+    self.icon_size = 60  # 60×60px unit icons
+    self.icon_spacing = 8  # 8px between icons
+
+    # Portrait caching
+    self.portrait_cache = {}  # Maps unit -> pygame.Surface
+    self.hovered_unit = None  # Currently hovered unit (for highlighting)
+```
+
+### Visual Layout
+
+```
+┌────────────────────────────────────────────────────────┐
+│ TURN ORDER:                                            │
+│ Player: Arthur Blackwood                               │
+│                                                        │
+│ [Label Area]   [🖼️] [🔫] [🖼️] [🐺] [🖼️] [🔫] [🖼️] [🐺]│
+│   280px wide    ↑ Current turn (green border)          │
+└────────────────────────────────────────────────────────┘
+```
+
+**Components:**
+- **Label area** (280px): "TURN ORDER:" + current turn info
+- **Unit icons** (60×60px each): Portraits or emoji symbols
+- **Mini health bars** (4px tall): Color-coded health indicators
+
+### Unit Icon Rendering
+
+Each unit icon shows:
+
+1. **Background color** - Team-based (blue/red) or dark gray (incapacitated)
+2. **Border** - 4px green (current turn), 3px golden (hovered), 2px team color (normal)
+3. **Portrait/Symbol** - Investigator portraits or enemy emoji
+4. **Health bar** - 4px tall, color changes with health percentage:
+   - Green (>60%), Yellow (30-60%), Red (<30%)
+
+```python
+def _draw_unit_icon(self, screen, unit, x, y, is_current_turn):
+    # Determine colors based on team and state
+    if unit.team == "player":
+        bg_color = (40, 60, 100)  # Dark blue
+        border_color = (100, 150, 255)  # Bright blue
+    else:
+        bg_color = (100, 40, 40)  # Dark red
+        border_color = (255, 100, 100)  # Bright red
+
+    # Override for incapacitated units
+    if unit.is_incapacitated:
+        bg_color = (30, 30, 35)
+        border_color = (60, 60, 65)
+
+    # Draw background and border
+    pygame.draw.rect(screen, bg_color, icon_rect)
+
+    border_width = 4 if is_current_turn else 2
+    if is_current_turn:
+        border_color = (100, 255, 100)  # Green for current turn
+
+    pygame.draw.rect(screen, border_color, icon_rect, border_width)
+
+    # Draw portrait for investigators, emoji for enemies
+    if unit.team == "player" and unit.image_path:
+        # Load and cache portrait image
+        portrait = self._load_portrait(unit)
+        screen.blit(portrait, (x + 4, y + 4))
+    else:
+        # Draw emoji symbol
+        symbol_surface = font.render(unit.symbol, True, color)
+        screen.blit(symbol_surface, center)
+
+    # Draw mini health bar at bottom
+    health_pct = unit.current_health / unit.max_health
+    health_color = get_health_color(health_pct)
+    pygame.draw.rect(screen, health_color, health_bar_rect)
+```
+
+### Portrait Caching
+
+To avoid loading images every frame, portraits are cached after first load:
+
+```python
+def _load_portrait(self, unit):
+    """Load and cache investigator portrait."""
+    if unit not in self.portrait_cache:
+        try:
+            portrait = pygame.image.load(unit.image_path)
+            # Scale to fit icon (with padding for border)
+            portrait = pygame.transform.scale(portrait, (52, 52))
+            self.portrait_cache[unit] = portrait
+        except:
+            self.portrait_cache[unit] = None
+
+    return self.portrait_cache.get(unit)
+```
+
+**Benefits:**
+- Images loaded once per unit
+- No disk I/O during gameplay
+- Smooth 60 FPS rendering
+
+### Current Turn Display
+
+The tracker shows current turn information in two lines:
+
+```python
+# Line 1: Label (26pt font)
+label_surface = font.render("TURN ORDER:", True, COLOR_TEXT)
+screen.blit(label_surface, (x + 10, y + 8))
+
+# Line 2: Current turn info (22pt font, golden color)
+if self.turn_order:
+    current_unit = self.turn_order[self.current_turn_index]
+    team_text = "Player" if current_unit.team == "player" else "Enemy"
+    info_text = f"{team_text}: {current_unit.name}"
+    info_surface = font.render(info_text, True, COLOR_TEXT_HIGHLIGHT)
+    screen.blit(info_surface, (x + 10, y + 35))
+```
+
+This replaces the previous separate battle header, consolidating turn information in one location.
+
+### Integration with Battle Screen
+
+```python
+# In battle_screen.py __init__:
+self.turn_order_tracker = TurnOrderTracker(
+    x=(SCREEN_WIDTH - 1200) // 2,  # Centered
+    y=10,  # Top of screen
+    width=1200,
+    height=70
+)
+
+# Populate with turn order
+self.turn_order_tracker.update_turn_order(
+    self.turn_order,
+    self.current_turn_index
+)
+
+# Adjust grid offset to accommodate tracker
+self.grid_offset_y = 95  # Was 100, now 95 to make room
+
+# In update():
+self.turn_order_tracker.update(mouse_pos)
+
+# In draw():
+self.turn_order_tracker.draw(screen)  # First, at top
+```
+
+### Update Flow
+
+When turns advance:
+
+```python
+def _advance_turn(self):
+    # ... advance turn logic ...
+
+    # Update tracker with new current turn index
+    self.turn_order_tracker.update_turn_order(
+        self.turn_order,
+        self.current_turn_index
+    )
+```
+
+The tracker automatically:
+- Updates the green highlight to the new current turn unit
+- Updates the "Player: Name" / "Enemy: Name" display
+- Maintains cached portraits (no reload needed)
+
+### Why This Design?
+
+**Advantages:**
+1. **At-a-glance awareness** - See full turn sequence without memorization
+2. **Character recognition** - Portraits make investigators instantly recognizable
+3. **Visual clarity** - Clean separation between players (portraits) and enemies (symbols)
+4. **Always visible** - Fixed position, no need to hover or click
+5. **Performance** - Portrait caching ensures smooth rendering
+6. **Compact** - All information in 70px tall bar
+
+**Design decisions:**
+- **No tooltips** - Turn info shown in fixed label instead
+- **Portrait vs symbol** - Portraits for investigators (unique characters), symbols for enemies (generic threats)
+- **Top position** - Prime screen real estate for critical turn order info
+- **Mini health bars** - Quick health assessment without cluttering icons
+- **Golden highlight** - Makes current turn info stand out
 
 ---
 

@@ -289,6 +289,57 @@ class BattleScreen:
         # Battle state
         self.selected_unit = None  # Unit being viewed (not necessarily whose turn it is)
         self.round_number = 1  # Round = all units take one turn
+
+        # Turn Order Tracker (Session 6)
+        self.turn_order_tracker = TurnOrderTracker(
+            x=(SCREEN_WIDTH - 1200) // 2,  # Centered
+            y=10,  # Top of screen
+            width=1200,
+            height=70
+        )
+        self.turn_order_tracker.update_turn_order(
+            self.turn_order,
+            self.current_turn_index
+        )
+
+        # Adjust grid offset for turn order tracker
+        self.grid_offset_y = 95  # Was 100, moved down for tracker
+```
+
+### Turn Order Tracker (Session 6)
+
+The turn order tracker displays all units in their turn sequence at the top of the battle screen.
+
+**Visual Layout**:
+```
+┌────────────────────────────────────────────────────────┐
+│ TURN ORDER:                                            │
+│ Player: Arthur Blackwood                               │
+│ [Label]   [🖼️] [🔫] [🖼️] [🐺] [🖼️] [🔫] [🖼️] [🐺]     │
+│  280px      ↑ Current turn (green border, 60×60px)     │
+└────────────────────────────────────────────────────────┘
+```
+
+**Features**:
+- **Unit icons** - Investigators show portrait images, enemies show emoji
+- **Current turn highlight** - 4px green border on active unit
+- **Turn info display** - "Player: Name" or "Enemy: Name" shown below label
+- **Mini health bars** - 4px tall color-coded bars at bottom of each icon
+- **Portrait caching** - Images loaded once and reused
+
+**Integration**:
+```python
+# In update():
+self.turn_order_tracker.update(mouse_pos)
+
+# In draw():
+self.turn_order_tracker.draw(screen)  # First, at top
+
+# When turn advances:
+self.turn_order_tracker.update_turn_order(
+    self.turn_order,
+    self.current_turn_index
+)
 ```
 
 ### Unit Positioning
