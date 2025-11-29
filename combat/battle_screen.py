@@ -12,7 +12,7 @@ from combat.grid import Grid
 from entities.unit import Unit
 from entities.investigator import Investigator, create_test_squad
 from entities.enemy import Enemy, create_test_enemies
-from ui.ui_elements import InvestigatorTile
+from ui.ui_elements import InvestigatorTile, ActionBar
 
 
 class BattleScreen:
@@ -149,6 +149,22 @@ class BattleScreen:
             )
             self.investigator_tiles.append(tile)
 
+        # ====================================================================
+        # Action Bar (Bottom Center)
+        # ====================================================================
+        # Position the action bar below the grid, centered
+        # 10 buttons × 70px + 9 gaps × 10px = 700 + 90 = 790px total width
+        action_bar_width = 10 * 70 + 9 * 10  # 790px
+        action_bar_x = (config.SCREEN_WIDTH - action_bar_width) // 2
+        action_bar_y = self.grid_offset_y + self.grid_pixel_size + 20  # 20px below grid
+
+        self.action_bar = ActionBar(
+            x=action_bar_x,
+            y=action_bar_y,
+            button_size=70,
+            spacing=10
+        )
+
     def _use_text_symbols(self):
         """
         Replace emoji symbols with ASCII text symbols.
@@ -262,6 +278,12 @@ class BattleScreen:
                 elif event.key == pygame.K_TAB:
                     self._cycle_unit_selection()
 
+            # Handle action bar events (before other UI)
+            # This includes both mouse clicks and hotkey presses (1-0 keys)
+            if self.action_bar.handle_event(event):
+                # Action bar consumed the event
+                continue
+
             # Handle investigator tile events (must be before grid clicks)
             # This allows clicking on tiles to select investigators
             for tile in self.investigator_tiles:
@@ -316,6 +338,7 @@ class BattleScreen:
             if self.current_phase == "player_turn" and unit.team == "player":
                 self.selected_unit = unit
                 self._update_tile_selection()
+                self._update_action_bar()
                 print(f"Selected: {unit.name}")
 
     def _on_investigator_tile_click(self, investigator: Investigator):
@@ -334,6 +357,7 @@ class BattleScreen:
         # Select the investigator
         self.selected_unit = investigator
         self._update_tile_selection()
+        self._update_action_bar()
         print(f"Selected: {investigator.name}")
 
     def _update_tile_selection(self):
@@ -348,6 +372,19 @@ class BattleScreen:
                 tile.set_selected(True)
             else:
                 tile.set_selected(False)
+
+    def _update_action_bar(self):
+        """
+        Update action bar to show actions for currently selected unit.
+
+        Called whenever selection changes. If the selected unit is an
+        investigator, populate the action bar with their available actions.
+        Otherwise, clear the action bar.
+        """
+        if self.selected_unit and isinstance(self.selected_unit, Investigator):
+            self.action_bar.update_for_investigator(self.selected_unit)
+        else:
+            self.action_bar.clear()
 
     def _pixel_to_grid(self, pixel_pos: Tuple[int, int]) -> Tuple[Optional[int], Optional[int]]:
         """
@@ -471,8 +508,9 @@ class BattleScreen:
             # Select first active unit
             self.selected_unit = active_units[0]
 
-        # Update tile selection to match
+        # Update tile selection and action bar to match
         self._update_tile_selection()
+        self._update_action_bar()
 
         print(f"Selected: {self.selected_unit.name}")
 
@@ -549,6 +587,9 @@ class BattleScreen:
         for tile in self.investigator_tiles:
             tile.update(self.mouse_pos)
 
+        # Update action bar (hover effects)
+        self.action_bar.update(self.mouse_pos)
+
     def _check_win_lose(self):
         """
         Check if battle is won or lost.
@@ -614,8 +655,11 @@ class BattleScreen:
         # Draw unit info panel
         self._draw_unit_info_panel()
 
-        # Draw controls help
-        self._draw_controls_help()
+        # Draw action bar (bottom center)
+        self.action_bar.draw(self.screen)
+
+        # Controls help disabled - action bar replaces it
+        # self._draw_controls_help()
 
     def _draw_header(self):
         """Draw battle status header."""

@@ -404,8 +404,9 @@ if selected_unit:
 **Layer 4: UI Overlay**
 ```python
 # Top: Turn number and phase
+# Left: Investigator tiles panel (4 tiles stacked)
 # Right: Unit info panel
-# Bottom: Controls help
+# Bottom: Action bar (10 slots, centered)
 ```
 
 ### Win/Lose Conditions
@@ -464,14 +465,18 @@ The battle system currently supports:
 - ✅ Unit selection (mouse click, Tab cycling)
 - ✅ Turn tracking (player/enemy phases)
 - ✅ Health/sanity bar visualization
+- ✅ Investigator tiles panel (left side, 4 stacked tiles)
+- ✅ Action bar (bottom center, 10 slots with hotkeys)
+- ✅ Synchronized selection (grid ↔ tiles ↔ Tab ↔ action bar)
 
 **Not yet implemented**:
-- ❌ Movement (clicking tile to move)
-- ❌ Attacking (clicking enemy to attack)
+- ❌ Movement (clicking tile to move or using action bar)
+- ❌ Attacking (clicking enemy to attack or using action bar)
 - ❌ Line of sight calculations
 - ❌ Hit chance display
 - ❌ Damage resolution
 - ❌ Enemy AI
+- ❌ Action execution from action bar
 
 These features will be added in the next development session.
 

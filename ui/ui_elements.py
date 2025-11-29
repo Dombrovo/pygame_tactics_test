@@ -957,3 +957,283 @@ class InvestigatorTile:
         text_surface = text_font.render(text, True, config.COLOR_TEXT)
         text_rect = text_surface.get_rect(center=(x + width // 2, y + height // 2))
         screen.blit(text_surface, text_rect)
+
+
+class ActionButton:
+    """
+    Small action button for the action bar.
+
+    Displays an ability/action icon or text with visual feedback.
+    Can be in enabled, disabled, or cooldown states.
+    """
+
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        size: int,
+        text: str = "",
+        icon: str = "",
+        on_click: Optional[Callable] = None,
+        enabled: bool = True,
+        hotkey: str = ""
+    ):
+        """
+        Initialize an action button.
+
+        Args:
+            x, y: Top-left position
+            size: Width and height (square button)
+            text: Text label for the action
+            icon: Icon/emoji symbol (if available)
+            on_click: Callback when button is clicked
+            enabled: Whether button can be clicked
+            hotkey: Keyboard shortcut (e.g., "1", "2", etc.)
+        """
+        self.rect = pygame.Rect(x, y, size, size)
+        self.text = text
+        self.icon = icon
+        self.on_click = on_click
+        self.enabled = enabled
+        self.hotkey = hotkey
+
+        # Visual state
+        self.is_hovered = False
+        self.is_pressed = False
+
+        # Colors
+        self.color_normal = (40, 40, 55)
+        self.color_hover = (60, 60, 80)
+        self.color_active = (80, 80, 110)
+        self.color_disabled = (25, 25, 35)
+        self.color_border = config.COLOR_MENU_BORDER
+        self.color_border_hover = config.COLOR_TEXT_HIGHLIGHT
+
+    def update(self, mouse_pos: Tuple[int, int]) -> None:
+        """Update hover state based on mouse position."""
+        if self.enabled:
+            self.is_hovered = self.rect.collidepoint(mouse_pos)
+        else:
+            self.is_hovered = False
+
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """
+        Handle mouse clicks on the action button.
+
+        Returns:
+            True if button was clicked, False otherwise
+        """
+        if not self.enabled:
+            return False
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.is_hovered:
+                self.is_pressed = True
+                return False
+
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            if self.is_hovered and self.is_pressed:
+                self.is_pressed = False
+                if self.on_click:
+                    self.on_click()
+                return True
+            self.is_pressed = False
+
+        return False
+
+    def set_enabled(self, enabled: bool) -> None:
+        """Set whether the button is enabled."""
+        self.enabled = enabled
+
+    def draw(self, screen: pygame.Surface) -> None:
+        """
+        Draw the action button.
+
+        Shows icon/text, hotkey number, and visual state.
+        """
+        # Background color based on state
+        if not self.enabled:
+            bg_color = self.color_disabled
+        elif self.is_pressed:
+            bg_color = self.color_active
+        elif self.is_hovered:
+            bg_color = self.color_hover
+        else:
+            bg_color = self.color_normal
+
+        # Draw background
+        pygame.draw.rect(screen, bg_color, self.rect)
+
+        # Draw border
+        if self.is_hovered and self.enabled:
+            border_color = self.color_border_hover
+            border_width = 3
+        else:
+            border_color = self.color_border
+            border_width = 2
+
+        pygame.draw.rect(screen, border_color, self.rect, border_width)
+
+        # Draw icon if available
+        if self.icon:
+            icon_font = pygame.font.Font(None, self.rect.height // 2)
+            text_color = config.COLOR_TEXT if self.enabled else config.COLOR_TEXT_DIM
+            icon_surface = icon_font.render(self.icon, True, text_color)
+            icon_rect = icon_surface.get_rect(center=self.rect.center)
+            screen.blit(icon_surface, icon_rect)
+
+        # Draw text label (below icon or centered if no icon)
+        if self.text:
+            text_font = pygame.font.Font(None, 22)
+            text_color = config.COLOR_TEXT if self.enabled else config.COLOR_TEXT_DIM
+            text_surface = text_font.render(self.text, True, text_color)
+
+            if self.icon:
+                # Position below icon
+                text_rect = text_surface.get_rect(
+                    centerx=self.rect.centerx,
+                    bottom=self.rect.bottom - 5
+                )
+            else:
+                # Center in button
+                text_rect = text_surface.get_rect(center=self.rect.center)
+
+            screen.blit(text_surface, text_rect)
+
+        # Draw hotkey number in top-left corner
+        if self.hotkey:
+            hotkey_font = pygame.font.Font(None, 18)
+            hotkey_color = config.COLOR_TEXT_HIGHLIGHT if self.enabled else config.COLOR_TEXT_DIM
+            hotkey_surface = hotkey_font.render(self.hotkey, True, hotkey_color)
+            screen.blit(hotkey_surface, (self.rect.x + 3, self.rect.y + 2))
+
+
+class ActionBar:
+    """
+    Action bar displaying 10 ability/action slots.
+
+    Updates based on the currently selected investigator,
+    showing available actions and their states.
+    """
+
+    def __init__(self, x: int, y: int, button_size: int = 70, spacing: int = 10):
+        """
+        Initialize the action bar.
+
+        Args:
+            x, y: Top-left position of the action bar
+            button_size: Size of each action button (square)
+            spacing: Space between buttons
+        """
+        self.x = x
+        self.y = y
+        self.button_size = button_size
+        self.spacing = spacing
+
+        # Create 10 action button slots
+        self.action_buttons: List[ActionButton] = []
+        for i in range(10):
+            button_x = x + (i * (button_size + spacing))
+            button_y = y
+
+            # Create empty slot with hotkey number
+            hotkey = str((i + 1) % 10)  # 1-9, then 0
+            button = ActionButton(
+                x=button_x,
+                y=button_y,
+                size=button_size,
+                text="",
+                on_click=lambda idx=i: self._on_action_click(idx),
+                enabled=False,
+                hotkey=hotkey
+            )
+            self.action_buttons.append(button)
+
+        # Current investigator
+        self.current_investigator = None
+
+    def update_for_investigator(self, investigator) -> None:
+        """
+        Update action bar to show actions for the given investigator.
+
+        Args:
+            investigator: Investigator object whose actions to display
+        """
+        self.current_investigator = investigator
+
+        # For now, show placeholder actions
+        # In the future, this will be populated from investigator.abilities
+
+        if investigator and not investigator.is_incapacitated:
+            # Enable Move button (slot 0)
+            self.action_buttons[0].text = "Move"
+            self.action_buttons[0].icon = "↗"
+            self.action_buttons[0].enabled = True
+
+            # Enable Attack button (slot 1)
+            self.action_buttons[1].text = "Attack"
+            self.action_buttons[1].icon = "⚔"
+            self.action_buttons[1].enabled = True
+
+            # Disable remaining slots (no abilities yet)
+            for i in range(2, 10):
+                self.action_buttons[i].text = ""
+                self.action_buttons[i].icon = ""
+                self.action_buttons[i].enabled = False
+        else:
+            # No investigator selected or incapacitated - disable all
+            for button in self.action_buttons:
+                button.text = ""
+                button.icon = ""
+                button.enabled = False
+
+    def clear(self) -> None:
+        """Clear the action bar (no investigator selected)."""
+        self.update_for_investigator(None)
+
+    def _on_action_click(self, slot_index: int) -> None:
+        """
+        Handle click on an action button.
+
+        Args:
+            slot_index: Index of the clicked button (0-9)
+        """
+        print(f"Action slot {slot_index} clicked")
+        # TODO: Execute the corresponding action
+        # This will trigger movement/attack/ability logic
+
+    def update(self, mouse_pos: Tuple[int, int]) -> None:
+        """Update hover states for all action buttons."""
+        for button in self.action_buttons:
+            button.update(mouse_pos)
+
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """
+        Handle events for all action buttons.
+
+        Returns:
+            True if any button consumed the event, False otherwise
+        """
+        for button in self.action_buttons:
+            if button.handle_event(event):
+                return True
+
+        # Handle hotkey presses (1-0 keys)
+        if event.type == pygame.KEYDOWN:
+            # Number keys 1-0 (SDLK keys 49-57 for 1-9, 48 for 0)
+            if pygame.K_1 <= event.key <= pygame.K_9:
+                slot_index = event.key - pygame.K_1  # 0-8
+                if self.action_buttons[slot_index].enabled:
+                    self._on_action_click(slot_index)
+                    return True
+            elif event.key == pygame.K_0:
+                if self.action_buttons[9].enabled:
+                    self._on_action_click(9)
+                    return True
+
+        return False
+
+    def draw(self, screen: pygame.Surface) -> None:
+        """Draw all action buttons."""
+        for button in self.action_buttons:
+            button.draw(screen)

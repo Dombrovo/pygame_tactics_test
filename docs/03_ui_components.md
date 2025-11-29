@@ -4,11 +4,14 @@ This guide explains how the reusable UI components work internally, with focus o
 
 ## Overview
 
-The `ui/ui_elements.py` module provides three main components:
+The `ui/ui_elements.py` module provides reusable UI components:
 
 1. **Button** - Base interactive button with hover/click detection
 2. **MenuButton** - Menu-specific button with enabled/disabled state
 3. **TextLabel** - Simple non-interactive text display
+4. **InvestigatorTile** - Battle screen status tile for investigators
+5. **ActionButton** - Action bar slot button with hotkey support
+6. **ActionBar** - 10-slot ability/action bar for battle screen
 
 ---
 
@@ -585,11 +588,286 @@ def test_button_click():
 
 ---
 
+## ActionButton Class
+
+### Purpose
+
+The ActionButton class is a **specialized button for action bars**:
+- Small square button (70×70px) for ability/action slots
+- Displays icon/emoji and text label
+- Shows hotkey number in top-left corner
+- Enabled/disabled states with visual feedback
+- Hover and pressed states
+
+### Anatomy of an ActionButton
+
+```python
+action_button = ActionButton(
+    x=100,
+    y=500,
+    size=70,                    # Width and height (square)
+    text="Move",                # Action label
+    icon="↗",                   # Icon/emoji symbol
+    on_click=move_action,       # Callback when clicked
+    enabled=True,               # Whether button can be clicked
+    hotkey="1"                  # Keyboard shortcut
+)
+```
+
+### Visual States
+
+```python
+# Enabled and idle
+bg_color = (40, 40, 55)         # Dark blue-gray
+border_color = (100, 100, 140)  # Gray border
+border_width = 2
+
+# Enabled and hovered
+bg_color = (60, 60, 80)         # Lighter blue-gray
+border_color = (255, 200, 100)  # Golden border
+border_width = 3
+
+# Enabled and pressed
+bg_color = (80, 80, 110)        # Even lighter blue-gray
+
+# Disabled
+bg_color = (25, 25, 35)         # Very dark
+text_color = (120, 120, 130)    # Dimmed text
+```
+
+### Usage Example
+
+```python
+# Create action button
+move_button = ActionButton(
+    x=565, y=920,
+    size=70,
+    text="Move",
+    icon="↗",
+    on_click=lambda: execute_move(),
+    enabled=True,
+    hotkey="1"
+)
+
+# In game loop
+move_button.update(mouse_pos)
+move_button.handle_event(event)
+move_button.draw(screen)
+
+# Enable/disable dynamically
+if unit.has_moved:
+    move_button.set_enabled(False)
+```
+
+---
+
+## ActionBar Class
+
+### Purpose
+
+The ActionBar manages a **row of 10 action slots** for the battle screen:
+- Displays available actions for selected investigator
+- Updates when selection changes
+- Supports mouse clicks and keyboard hotkeys (1-0)
+- Auto-enables/disables based on investigator state
+
+### Anatomy of an ActionBar
+
+```python
+action_bar = ActionBar(
+    x=565,           # Left edge (centered on 1920px screen)
+    y=920,           # Top edge (below grid)
+    button_size=70,  # Size of each button
+    spacing=10       # Gap between buttons
+)
+```
+
+### Layout Calculation
+
+```
+Total width = (button_size × 10) + (spacing × 9)
+            = (70 × 10) + (10 × 9)
+            = 700 + 90
+            = 790 pixels
+
+Centered X = (SCREEN_WIDTH - total_width) / 2
+           = (1920 - 790) / 2
+           = 565 pixels
+```
+
+### Internal Structure
+
+```python
+class ActionBar:
+    def __init__(self, x, y, button_size, spacing):
+        self.action_buttons = []  # List of 10 ActionButtons
+        self.current_investigator = None
+
+        # Create 10 slots with hotkeys 1-9, 0
+        for i in range(10):
+            button_x = x + (i * (button_size + spacing))
+            hotkey = str((i + 1) % 10)  # 1,2,3...9,0
+            button = ActionButton(
+                x=button_x, y=y,
+                size=button_size,
+                hotkey=hotkey,
+                on_click=lambda idx=i: self._on_action_click(idx)
+            )
+            self.action_buttons.append(button)
+```
+
+### Update Pattern
+
+```python
+# When investigator is selected
+def update_for_investigator(self, investigator):
+    if investigator and not investigator.is_incapacitated:
+        # Enable available actions
+        self.action_buttons[0].text = "Move"
+        self.action_buttons[0].icon = "↗"
+        self.action_buttons[0].enabled = True
+
+        self.action_buttons[1].text = "Attack"
+        self.action_buttons[1].icon = "⚔"
+        self.action_buttons[1].enabled = True
+
+        # Disable empty slots
+        for i in range(2, 10):
+            self.action_buttons[i].enabled = False
+    else:
+        # No selection or incapacitated - disable all
+        for button in self.action_buttons:
+            button.enabled = False
+```
+
+### Keyboard Hotkey Support
+
+```python
+def handle_event(self, event):
+    # Check mouse clicks on buttons
+    for button in self.action_buttons:
+        if button.handle_event(event):
+            return True
+
+    # Check keyboard hotkeys (1-0)
+    if event.type == pygame.KEYDOWN:
+        if pygame.K_1 <= event.key <= pygame.K_9:
+            slot_index = event.key - pygame.K_1  # 0-8
+            if self.action_buttons[slot_index].enabled:
+                self._on_action_click(slot_index)
+                return True
+        elif event.key == pygame.K_0:
+            if self.action_buttons[9].enabled:
+                self._on_action_click(9)
+                return True
+```
+
+### Battle Screen Integration
+
+```python
+class BattleScreen:
+    def __init__(self, screen):
+        # ... other initialization ...
+
+        # Create action bar
+        action_bar_width = 10 * 70 + 9 * 10  # 790px
+        action_bar_x = (config.SCREEN_WIDTH - action_bar_width) // 2
+        action_bar_y = self.grid_offset_y + self.grid_pixel_size + 20
+
+        self.action_bar = ActionBar(
+            x=action_bar_x,
+            y=action_bar_y,
+            button_size=70,
+            spacing=10
+        )
+
+    def _on_investigator_tile_click(self, investigator):
+        self.selected_unit = investigator
+        self._update_action_bar()  # Sync action bar with selection
+
+    def _update_action_bar(self):
+        if self.selected_unit:
+            self.action_bar.update_for_investigator(self.selected_unit)
+        else:
+            self.action_bar.clear()
+
+    def update(self):
+        self.action_bar.update(self.mouse_pos)  # Update hover states
+
+    def handle_events(self):
+        for event in pygame.event.get():
+            # Action bar handles events first (including hotkeys)
+            if self.action_bar.handle_event(event):
+                continue
+            # ... other event handling ...
+
+    def draw(self):
+        # ... draw grid, units, etc. ...
+        self.action_bar.draw(self.screen)  # Draw action bar
+```
+
+### Visual Layout
+
+```
+┌────────────────────────────────────────────────────┐
+│              TURN 1 | PLAYER PHASE                 │
+├─────────────┬──────────────────┬────────────────────┤
+│ Inv Tile 1  │                  │ Selected Unit Info │
+├─────────────┤   10×10 GRID     │                    │
+│ Inv Tile 2  │   (800×800)      │                    │
+├─────────────┤                  │                    │
+│ Inv Tile 3  │                  │                    │
+├─────────────┤                  │                    │
+│ Inv Tile 4  │                  │                    │
+└─────────────┴──────────────────┴────────────────────┘
+             ┌────────────────────┐
+             │    ACTION BAR      │ (790px wide)
+             │ [1][2][3][4]...[0] │ (10 buttons)
+             └────────────────────┘
+                   ↑ centered ↑
+```
+
+### Future Enhancements
+
+The action bar is designed to be extensible for Phase 2+:
+
+```python
+# Add abilities from investigator
+def update_for_investigator(self, investigator):
+    # Populate from investigator.abilities list
+    for i, ability in enumerate(investigator.abilities):
+        if i < 10:  # Max 10 slots
+            self.action_buttons[i].text = ability.name
+            self.action_buttons[i].icon = ability.icon
+            self.action_buttons[i].enabled = ability.can_use()
+
+# Cooldown visualization
+class ActionButton:
+    def draw(self, screen):
+        # ... existing drawing ...
+
+        # Draw cooldown overlay
+        if self.cooldown_remaining > 0:
+            # Semi-transparent dark overlay
+            overlay = pygame.Surface((self.rect.width, self.rect.height))
+            overlay.set_alpha(128)
+            overlay.fill((0, 0, 0))
+            screen.blit(overlay, self.rect)
+
+            # Draw cooldown number
+            font = pygame.font.Font(None, 48)
+            text = font.render(str(self.cooldown_remaining), True, (255, 255, 255))
+            screen.blit(text, self.rect.center)
+```
+
+---
+
 ## Next Steps
 
 - [Data Flow Guide](04_data_flow.md) - Trace how clicks flow through the system
 - [Architecture Overview](02_architecture_overview.md) - High-level structure
 - [Pygame Fundamentals](01_pygame_fundamentals.md) - Core concepts
+- [Grid and Battle System](05_grid_and_battle_system.md) - Battle screen details
 
 ---
 

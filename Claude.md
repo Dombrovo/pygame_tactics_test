@@ -52,6 +52,8 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 - ✅ MenuButton class (extends Button with enabled/disabled state)
 - ✅ TextLabel class (non-interactive text display)
 - ✅ InvestigatorTile class (status panel component)
+- ✅ ActionButton class (action bar slot component)
+- ✅ ActionBar class (10-slot ability/action bar)
 - ✅ Callback pattern implementation
 
 #### 4. Title Screen
@@ -99,7 +101,7 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 - ✅ Selected unit highlighting (yellow border)
 - ✅ Unit info panel (right side display)
 - ✅ Turn counter and phase display
-- ✅ Controls help overlay
+- ✅ Action bar (10 slots, bottom center)
 - ✅ Pixel ↔ grid coordinate conversion
 
 #### 9. Name Generation System
@@ -134,6 +136,25 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 - ✅ Battle screen integration (left panel, 4 stacked tiles)
 - ✅ Synchronized selection (tile clicks ↔ grid clicks ↔ Tab)
 - ✅ Enhanced tactical overview
+
+#### 13. Action Bar System (Session 4)
+- ✅ ActionButton UI component (70×70px square buttons)
+  - Icon/emoji display with text labels
+  - Hotkey indicators (1-0 in top-left corner)
+  - Enabled/disabled states with visual feedback
+  - Hover and pressed states
+- ✅ ActionBar class (10 action slots)
+  - Horizontal layout, centered below grid
+  - Updates based on selected investigator
+  - Mouse click support for all slots
+  - Keyboard hotkey support (1-0 keys)
+  - Auto-populates Move and Attack placeholders
+  - Clears when no unit selected or incapacitated
+- ✅ Battle screen integration
+  - Positioned below grid (centered, 790px wide)
+  - Synchronized with selection system
+  - Event handling (mouse + keyboard)
+  - Disabled controls help text (replaced by action bar)
 
 ### 🚧 In Progress
 
@@ -286,6 +307,56 @@ Successfully implemented a comprehensive investigator status panel for enhanced 
 - Large, easy-to-click targets (510×180px vs 80×80px grid tiles)
 - Better screen space utilization (left panel fills vertical space)
 - Immediate visual feedback for incapacitated units
+
+### Action Bar System Implementation
+
+Successfully implemented a 10-slot action bar for displaying investigator abilities and actions:
+
+**Key Features**:
+- 10 action slots (70×70px square buttons) with hotkey indicators (1-0)
+- Icon/emoji display (↗ for Move, ⚔ for Attack) with text labels
+- Visual states: enabled/disabled, hover, pressed
+- Mouse click support for all slots
+- Keyboard hotkey support (press 1-0 to trigger actions)
+- Auto-updates based on selected investigator
+- Clears when no unit selected or incapacitated
+
+**Battle Screen Layout** (Updated):
+```
+┌────────────────────────────────────────────────────┐
+│              TURN 1 | PLAYER PHASE                 │
+├─────────────┬──────────────────┬────────────────────┤
+│ Inv Tile 1  │                  │ Selected Unit Info │
+│ (510×180)   │                  │ (Right panel)      │
+├─────────────┤                  │                    │
+│ Inv Tile 2  │   10×10 GRID     │                    │
+├─────────────┤   (800×800)      │                    │
+│ Inv Tile 3  │                  │                    │
+├─────────────┤                  │                    │
+│ Inv Tile 4  │                  │                    │
+└─────────────┴──────────────────┴────────────────────┘
+             ┌────────────────────┐
+             │    ACTION BAR      │ (10 slots, 790px)
+             │ [1][2][3][4]...[0] │ (centered below)
+             └────────────────────┘
+```
+
+**Integration**:
+- Positioned below grid, centered (790px wide total)
+- Synchronized with selection system (updates on click/Tab)
+- Event handling integrated (mouse + keyboard before grid clicks)
+- Replaced controls help text (action bar is more intuitive)
+
+**Current Placeholders**:
+- Slot 1 (hotkey 1): Move action ↗
+- Slot 2 (hotkey 2): Attack action ⚔
+- Slots 3-10: Empty (ready for future abilities)
+
+**Impact**:
+- Quick access to abilities via mouse or keyboard
+- Visual feedback for available/unavailable actions
+- Extensible system ready for Phase 2 abilities
+- Improved UX compared to text-based controls
 
 **For detailed session history, see**: [docs/session_archive.md](docs/session_archive.md)
 
