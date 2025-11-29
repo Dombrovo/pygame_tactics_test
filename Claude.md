@@ -19,8 +19,8 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 
 ## Current Development State
 
-**Last Updated**: 2025-11-29 (Session 4)
-**Current Phase**: Phase 1 - MVP (~75% Complete - UI Enhanced, Combat Mechanics Next)
+**Last Updated**: 2025-11-29 (Session 5)
+**Current Phase**: Phase 1 - MVP (~80% Complete - Turn Order Complete, Combat Mechanics Next)
 
 ### ✅ Completed Components
 
@@ -97,11 +97,12 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 - ✅ Grid rendering (10x10 with cover symbols)
 - ✅ Unit rendering (emoji symbols + health/sanity bars)
 - ✅ Unit selection (mouse click, Tab cycling)
-- ✅ Turn-based system (player phase ↔ enemy phase)
-- ✅ Selected unit highlighting (yellow border)
+- ✅ Turn-based system (individual unit turns with random order)
+- ✅ Dual highlighting (green=current turn, yellow=viewing)
 - ✅ Unit info panel (right side display)
-- ✅ Turn counter and phase display
-- ✅ Action bar (10 slots, bottom center)
+- ✅ Turn/round counter and current unit display
+- ✅ Action bar (10 slots, bottom center, tied to current turn)
+- ✅ End Turn button (right of action bar)
 - ✅ Pixel ↔ grid coordinate conversion
 
 #### 9. Name Generation System
@@ -137,7 +138,7 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 - ✅ Synchronized selection (tile clicks ↔ grid clicks ↔ Tab)
 - ✅ Enhanced tactical overview
 
-#### 13. Action Bar System (Session 4)
+#### 13. Action Bar System (Session 4, Updated Session 5)
 - ✅ ActionButton UI component (70×70px square buttons)
   - Icon/emoji display with text labels
   - Hotkey indicators (1-0 in top-left corner)
@@ -145,14 +146,14 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
   - Hover and pressed states
 - ✅ ActionBar class (10 action slots)
   - Horizontal layout, centered below grid
-  - Updates based on selected investigator
+  - **Session 5 Update**: Now tied to current turn unit (not selected unit)
   - Mouse click support for all slots
   - Keyboard hotkey support (1-0 keys)
   - Auto-populates Move and Attack placeholders
-  - Clears when no unit selected or incapacitated
+  - Clears when no player unit's turn or incapacitated
 - ✅ Battle screen integration
   - Positioned below grid (centered, 790px wide)
-  - Synchronized with selection system
+  - **Session 5**: End Turn button positioned to the right (150×70px)
   - Event handling (mouse + keyboard)
   - Disabled controls help text (replaced by action bar)
 
@@ -173,6 +174,32 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
   - Scout enemy capabilities before engagement
   - Identify priority targets (low HP, high threat)
   - Strategic planning based on enemy stats
+
+#### 15. Turn Order System (Session 5)
+- ✅ Individual unit turn structure (replaces phase-based system)
+  - Random turn order initialization (all units shuffled)
+  - Round tracking (round = all units take one turn)
+  - Automatic advancement with wrap-around
+  - Future-ready for initiative stat implementation
+- ✅ End Turn button (150×70px, right of action bar)
+  - Click or Space key to advance turn
+  - Automatically skips incapacitated units
+  - Enemy turns auto-skip (AI placeholder)
+- ✅ Dual highlight system
+  - Green highlight: Current turn unit (can act now)
+  - Yellow highlight: Selected unit for viewing (if different)
+  - Both highlights shown simultaneously for clarity
+- ✅ Action bar behavior updated
+  - Shows actions only for current turn unit
+  - Selecting other units doesn't change action bar
+  - Enforces proper turn structure
+- ✅ Enhanced header display
+  - Shows: "ROUND X | Player/Enemy Turn: Unit Name"
+  - Clear visual indicator of whose turn it is
+- ✅ Turn order debugging
+  - Console output shows full turn order at battle start
+  - Turn advancement messages for development
+  - Comprehensive test suite (`testing/test_turn_order.py`)
 
 ### 🚧 In Progress
 
@@ -412,6 +439,93 @@ When selecting enemies, the right panel shows:
 
 ---
 
+## Recent Development: Session 5
+
+**Completed**: 2025-11-29
+
+### Turn Order System Implementation
+
+Successfully replaced phase-based turns (all players → all enemies) with individual unit turn order system:
+
+**Key Features**:
+- **Random turn order** - All 8 units (4 players + 4 enemies) shuffled into single queue
+- **Round tracking** - Round increments when all units have taken one turn
+- **Auto-skip** - Incapacitated units automatically skipped
+- **Enemy AI placeholder** - Enemy turns immediately advance (AI not yet implemented)
+
+**Visual Enhancements**:
+- **Dual highlight system**:
+  - 🟢 Green border = Current turn unit (can act now)
+  - 🟡 Yellow border = Selected for viewing (if different from current turn)
+- **Updated header**: "ROUND X | Player/Enemy Turn: Unit Name"
+- **End Turn button**: 150×70px button positioned right of action bar
+
+**Behavioral Changes**:
+- **Action bar** now tied to current turn unit (not selected unit)
+  - Clicking other units shows their stats but doesn't change action bar
+  - Enforces proper turn structure
+- **Selection** still works for all units (intelligence gathering)
+  - Grid clicks select any unit to view stats
+  - Investigator tiles for quick player unit access
+  - Tab cycling through player units unchanged
+
+**Battle Screen Layout** (Updated with End Turn):
+```
+┌────────────────────────────────────────────────────────┐
+│         ROUND 1 | Player Turn: John Carter            │
+├─────────────┬──────────────────┬────────────────────────┤
+│ Inv Tile 1  │                  │ Selected Unit Info    │
+│   (green)   │    🟢 = Current  │ (Right panel)         │
+├─────────────┤    🟡 = Viewing  │                       │
+│ Inv Tile 2  │   10×10 GRID     │ Name, HP, SAN         │
+├─────────────┤   (800×800)      │ Stats, weapon info    │
+│ Inv Tile 3  │                  │                       │
+├─────────────┤                  │                       │
+│ Inv Tile 4  │                  │                       │
+└─────────────┴──────────────────┴────────────────────────┘
+         ┌────────────────────┬───────────┐
+         │    ACTION BAR      │ End Turn  │
+         │ [1][2][3]...[0]    │  Button   │
+         └────────────────────┴───────────┘
+```
+
+**Turn Advancement Flow**:
+1. Battle starts → Random turn order created → First unit's turn
+2. Player sees green highlight on current turn unit
+3. Action bar shows current unit's actions (if player unit)
+4. Click "End Turn" or press Space
+5. Next unit in order takes their turn
+6. Enemy turns auto-skip with "[AI not yet implemented]" message
+7. When all 8 units acted → Round increments, wraps to first unit
+
+**Implementation Details**:
+- `turn_order[]` - List of all units in shuffled order
+- `current_turn_index` - Index in turn order (0-7)
+- `current_turn_unit` - Unit whose turn it is
+- `round_number` - Tracks full cycles through turn order
+- `_advance_turn()` - Handles turn progression with wrap-around
+
+**Testing**:
+Created comprehensive test suite (`testing/test_turn_order.py`):
+- ✅ Turn order initialization (random shuffle)
+- ✅ Turn advancement with wrap-around
+- ✅ Skipping incapacitated units
+- ✅ Round incrementing
+- ✅ Team mixing (random order, not phase-based)
+
+**Configuration**:
+Added to `config.py`:
+- `COLOR_CURRENT_TURN = (100, 255, 100)` - Green highlight for active unit
+
+**Impact**:
+- More tactical depth - Must plan around turn order
+- X-COM-like feel - Unit-based instead of phase-based
+- Ready for initiative stat (replace random with stat-based order)
+- Clearer visual language (green=act, yellow=view)
+- Foundation for complex AI behaviors (each unit acts independently)
+
+---
+
 ## Quick Reference
 
 ### Running the Game
@@ -459,8 +573,8 @@ uv run python main.py
 
 ---
 
-**Last Updated**: 2025-11-29 (Session 4)
-**Version**: 2.0 (Reorganized Documentation)
+**Last Updated**: 2025-11-29 (Session 5)
+**Version**: 2.1 (Turn Order System)
 **Target Platform**: Windows/Mac/Linux Desktop
 **Engine**: Pygame CE 2.5.x
 **Python**: 3.10+

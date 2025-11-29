@@ -6,13 +6,14 @@ combat takes place.
 """
 
 import pygame
+import random
 from typing import Optional, List, Tuple
 import config
 from combat.grid import Grid
 from entities.unit import Unit
 from entities.investigator import Investigator, create_test_squad
 from entities.enemy import Enemy, create_test_enemies
-from ui.ui_elements import InvestigatorTile, ActionBar
+from ui.ui_elements import InvestigatorTile, ActionBar, Button
 
 
 class BattleScreen:
@@ -56,10 +57,26 @@ class BattleScreen:
         # Place units on grid
         self._setup_unit_positions()
 
+        # ====================================================================
+        # Turn Order System
+        # ====================================================================
+        # Individual unit turns instead of phase-based (all players then all enemies)
+        # For now: random order; future: initiative stat-based
+
+        # Combine all units into turn order and shuffle randomly
+        all_units = self.player_units + self.enemy_units
+        random.shuffle(all_units)
+        self.turn_order: List[Unit] = all_units
+
+        # Track which unit's turn it is
+        self.current_turn_index = 0
+        self.current_turn_unit: Optional[Unit] = self.turn_order[0] if self.turn_order else None
+
         # Battle state
-        self.current_phase = "player_turn"  # "player_turn" or "enemy_turn"
-        self.selected_unit: Optional[Unit] = None
+        self.current_phase = "player_turn"  # Deprecated: kept for compatibility, will be removed
+        self.selected_unit: Optional[Unit] = None  # Unit being viewed (not necessarily whose turn it is)
         self.turn_number = 1
+        self.round_number = 1  # A round = all units have taken one turn
 
         # Calculate grid rendering offset (center on screen)
         self.grid_pixel_size = config.GRID_SIZE * config.TILE_SIZE
@@ -164,6 +181,44 @@ class BattleScreen:
             button_size=70,
             spacing=10
         )
+
+        # ====================================================================
+        # End Turn Button (Right of Action Bar)
+        # ====================================================================
+        # Position end turn button to the right of action bar with 20px gap
+        end_turn_button_width = 150
+        end_turn_button_height = 70
+        end_turn_button_x = action_bar_x + action_bar_width + 20  # 20px gap
+        end_turn_button_y = action_bar_y
+
+        self.end_turn_button = Button(
+            x=end_turn_button_x,
+            y=end_turn_button_y,
+            width=end_turn_button_width,
+            height=end_turn_button_height,
+            text="End Turn",
+            on_click=self._advance_turn
+        )
+
+        # ====================================================================
+        # Initialize First Turn
+        # ====================================================================
+        # Set up the initial turn state
+        # Auto-select the first unit in turn order
+        self.selected_unit = self.current_turn_unit
+        self._update_tile_selection()
+        self._update_action_bar()
+
+        # Print initial turn information
+        if self.current_turn_unit:
+            team_str = "Player" if self.current_turn_unit.team == "player" else "Enemy"
+            print(f"\n=== BATTLE START ===")
+            print(f"Turn order ({len(self.turn_order)} units):")
+            for i, unit in enumerate(self.turn_order):
+                current_marker = " <-- CURRENT" if i == 0 else ""
+                team_marker = "P" if unit.team == "player" else "E"
+                print(f"  {i+1}. [{team_marker}] {unit.name}{current_marker}")
+            print(f"\n{team_str} Turn: {self.current_turn_unit.name}")
 
     def _use_text_symbols(self):
         """
@@ -284,6 +339,11 @@ class BattleScreen:
                 # Action bar consumed the event
                 continue
 
+            # Handle end turn button events
+            if self.end_turn_button.handle_event(event):
+                # End turn button was clicked, event consumed
+                continue
+
             # Handle investigator tile events (must be before grid clicks)
             # This allows clicking on tiles to select investigators
             for tile in self.investigator_tiles:
@@ -388,14 +448,15 @@ class BattleScreen:
 
     def _update_action_bar(self):
         """
-        Update action bar to show actions for currently selected unit.
+        Update action bar to show actions for current turn unit (not selected unit).
 
-        Called whenever selection changes. If the selected unit is an
-        investigator, populate the action bar with their available actions.
-        Otherwise, clear the action bar.
+        The action bar displays actions only for the unit whose turn it is.
+        Selecting other units for viewing does NOT change the action bar.
+
+        Called whenever turn advances or turn unit changes.
         """
-        if self.selected_unit and isinstance(self.selected_unit, Investigator):
-            self.action_bar.update_for_investigator(self.selected_unit)
+        if self.current_turn_unit and isinstance(self.current_turn_unit, Investigator):
+            self.action_bar.update_for_investigator(self.current_turn_unit)
         else:
             self.action_bar.clear()
 
@@ -527,6 +588,73 @@ class BattleScreen:
 
         print(f"Selected: {self.selected_unit.name}")
 
+    def _advance_turn(self):
+        """
+        Advance to the next unit in turn order.
+
+        Turn advancement process:
+        1. Reset current unit's turn flags
+        2. Move to next unit in turn order (skip incapacitated units)
+        3. If end of turn order reached, increment round and wrap to start
+        4. Update action bar to show current unit's actions
+        5. Auto-select current turn unit
+
+        If current unit is enemy, execute AI (future implementation).
+        """
+        if not self.turn_order:
+            return
+
+        # Reset current unit's turn flags
+        if self.current_turn_unit:
+            self.current_turn_unit.reset_turn_flags()
+
+        # Find next active unit (skip incapacitated units)
+        original_index = self.current_turn_index
+        found_active_unit = False
+
+        # Loop through all units to find next active one
+        for i in range(len(self.turn_order)):
+            # Calculate next index with wrap-around
+            self.current_turn_index = (original_index + 1 + i) % len(self.turn_order)
+            next_unit = self.turn_order[self.current_turn_index]
+
+            # Check if unit can act (not incapacitated)
+            if next_unit.can_act():
+                self.current_turn_unit = next_unit
+                found_active_unit = True
+                break
+
+        # If we wrapped around to the start, increment round
+        if self.current_turn_index < original_index or (self.current_turn_index == 0 and original_index > 0):
+            self.round_number += 1
+            print(f"\n=== ROUND {self.round_number} ===")
+
+        if not found_active_unit:
+            # No active units remaining - battle should end
+            print("No active units remaining")
+            return
+
+        # Auto-select the current turn unit for viewing
+        self.selected_unit = self.current_turn_unit
+
+        # Update UI
+        self._update_tile_selection()
+        self._update_action_bar()
+
+        # Update current_phase for compatibility (deprecated)
+        self.current_phase = "player_turn" if self.current_turn_unit.team == "player" else "enemy_turn"
+
+        # Print turn information
+        team_str = "Player" if self.current_turn_unit.team == "player" else "Enemy"
+        print(f"\n{team_str} Turn: {self.current_turn_unit.name}")
+
+        # If enemy turn, execute AI (future implementation)
+        if self.current_turn_unit.team == "enemy":
+            # TODO: Execute enemy AI
+            # For now, immediately skip to next turn
+            print("  [AI not yet implemented - skipping enemy turn]")
+            self._advance_turn()
+
     def _end_turn(self):
         """
         End current phase and switch to next phase.
@@ -603,6 +731,9 @@ class BattleScreen:
         # Update action bar (hover effects)
         self.action_bar.update(self.mouse_pos)
 
+        # Update end turn button (hover effects)
+        self.end_turn_button.update(self.mouse_pos)
+
     def _check_win_lose(self):
         """
         Check if battle is won or lost.
@@ -661,9 +792,15 @@ class BattleScreen:
         # Draw units
         self._draw_units()
 
-        # Draw selection highlight
+        # Draw selection highlights
+        # 1. Current turn unit (green) - always shown
+        if self.current_turn_unit and self.current_turn_unit.position:
+            self._draw_selection_highlight(self.current_turn_unit.position, is_current_turn=True)
+
+        # 2. Selected unit for viewing (yellow) - only if different from current turn unit
         if self.selected_unit and self.selected_unit.position:
-            self._draw_selection_highlight(self.selected_unit.position)
+            if self.selected_unit != self.current_turn_unit:
+                self._draw_selection_highlight(self.selected_unit.position, is_current_turn=False)
 
         # Draw unit info panel
         self._draw_unit_info_panel()
@@ -671,14 +808,20 @@ class BattleScreen:
         # Draw action bar (bottom center)
         self.action_bar.draw(self.screen)
 
+        # Draw end turn button
+        self.end_turn_button.draw(self.screen)
+
         # Controls help disabled - action bar replaces it
         # self._draw_controls_help()
 
     def _draw_header(self):
         """Draw battle status header."""
-        # Turn number and phase
-        phase_text = "PLAYER PHASE" if self.current_phase == "player_turn" else "ENEMY PHASE"
-        turn_text = f"TURN {self.turn_number} | {phase_text}"
+        # Show current unit's turn
+        if self.current_turn_unit:
+            team_text = "Player" if self.current_turn_unit.team == "player" else "Enemy"
+            turn_text = f"ROUND {self.round_number} | {team_text} Turn: {self.current_turn_unit.name}"
+        else:
+            turn_text = f"ROUND {self.round_number}"
 
         text_surface = self.font_medium.render(turn_text, True, config.COLOR_TEXT_HIGHLIGHT)
         text_rect = text_surface.get_rect(center=(config.SCREEN_WIDTH // 2, 50))
@@ -780,19 +923,30 @@ class BattleScreen:
                 (bar_x, bar_y_sanity, int(bar_width * sanity_pct), bar_height)
             )
 
-    def _draw_selection_highlight(self, grid_pos: Tuple[int, int]):
+    def _draw_selection_highlight(self, grid_pos: Tuple[int, int], is_current_turn: bool = False):
         """
-        Draw highlight around selected unit.
+        Draw highlight around selected/current turn unit.
+
+        Highlights use different colors to indicate different states:
+        - Green: Current turn unit (can act now)
+        - Yellow: Selected for viewing (not their turn)
 
         Args:
             grid_pos: (x, y) grid coordinates
+            is_current_turn: True if this is the current turn unit's highlight
         """
         x, y = grid_pos
         pixel_x, pixel_y = self._grid_to_pixel(x, y)
 
-        # Draw yellow border
+        # Choose color based on whether it's current turn or just viewing
+        if is_current_turn:
+            color = config.COLOR_CURRENT_TURN  # Green
+        else:
+            color = config.COLOR_SELECTED  # Yellow
+
+        # Draw border
         highlight_rect = pygame.Rect(pixel_x, pixel_y, config.TILE_SIZE, config.TILE_SIZE)
-        pygame.draw.rect(self.screen, (255, 255, 100), highlight_rect, 3)
+        pygame.draw.rect(self.screen, color, highlight_rect, 3)
 
     def _draw_unit_info_panel(self):
         """Draw info panel for selected unit."""

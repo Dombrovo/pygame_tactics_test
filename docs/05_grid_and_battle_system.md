@@ -279,10 +279,16 @@ class BattleScreen:
         # Place units on grid
         self._setup_unit_positions()
 
+        # Turn order (Session 5)
+        all_units = self.player_units + self.enemy_units
+        random.shuffle(all_units)
+        self.turn_order = all_units
+        self.current_turn_index = 0
+        self.current_turn_unit = self.turn_order[0]
+
         # Battle state
-        self.current_phase = "player_turn"
-        self.selected_unit = None
-        self.turn_number = 1
+        self.selected_unit = None  # Unit being viewed (not necessarily whose turn it is)
+        self.round_number = 1  # Round = all units take one turn
 ```
 
 ### Unit Positioning
@@ -354,27 +360,71 @@ def _grid_to_pixel(self, grid_x, grid_y):
 **Keyboard Controls**:
 - **Tab**: Cycle through player units (command focus, not enemy units)
 - **1-0**: Trigger action bar slots (hotkeys for abilities)
-- **Space**: End turn (switch player ↔ enemy phase)
+- **Space**: End Turn (advance to next unit in turn order)
 - **ESC**: Return to main menu
 
-### Turn System
+### Turn System (Session 5: Individual Unit Turns)
+
+**Turn Order Structure**:
+- All units (players + enemies) shuffled into single queue
+- Each unit takes their turn in order
+- Round increments when all units have acted
 
 ```python
-# Player turn
-current_phase = "player_turn"
-- Player selects units
-- Player performs actions (future: move, attack)
-- Player presses Space to end turn
+# Turn order initialization
+all_units = player_units + enemy_units  # [4 investigators, 4 enemies]
+random.shuffle(all_units)               # Random order
+turn_order = all_units                  # [Unit1, Unit2, ..., Unit8]
 
-# Enemy turn
-current_phase = "enemy_turn"
-- AI controls enemy units (future)
-- Enemies move and attack (future)
-- Automatically switches back to player turn
+# Example turn order (random):
+# 1. Cultist Alpha (Enemy)
+# 2. John Carter (Player)
+# 3. Hound Beta (Enemy)
+# 4. Sarah Mitchell (Player)
+# 5. Cultist Beta (Enemy)
+# 6. Marcus Stone (Player)
+# 7. Hound Alpha (Enemy)
+# 8. Elena Ramirez (Player)
+# → Round 2 starts, back to Cultist Alpha
 
-# Turn counter increments each cycle
-turn_number += 1
+# Turn advancement
+def _advance_turn():
+    # Move to next unit in turn order
+    current_turn_index = (current_turn_index + 1) % len(turn_order)
+    current_turn_unit = turn_order[current_turn_index]
+
+    # Skip incapacitated units
+    while not current_turn_unit.can_act():
+        current_turn_index = (current_turn_index + 1) % len(turn_order)
+        current_turn_unit = turn_order[current_turn_index]
+
+    # Check for round wrap
+    if current_turn_index < previous_index:
+        round_number += 1
+
+    # Update action bar for current unit
+    if current_turn_unit.team == "player":
+        action_bar.update_for_investigator(current_turn_unit)
+    else:
+        action_bar.clear()
+        # TODO: Execute enemy AI
 ```
+
+**Turn Flow**:
+1. Battle starts → Random turn order created → First unit's turn
+2. Current turn unit highlighted in **green**
+3. Player can view any unit (yellow highlight if different from current turn)
+4. Action bar shows current turn unit's actions (if player unit)
+5. Player clicks "End Turn" or presses Space
+6. Next unit in order takes their turn
+7. Enemy turns auto-skip (AI placeholder: immediately advances)
+8. When all 8 units acted → Round increments → Wraps to first unit
+
+**Visual Indicators**:
+- 🟢 **Green highlight** = Current turn unit (can act now)
+- 🟡 **Yellow highlight** = Selected for viewing (if different)
+- **Header**: "ROUND X | Player/Enemy Turn: Unit Name"
+- **End Turn button**: Right of action bar (150×70px)
 
 ### Rendering
 
@@ -410,18 +460,26 @@ for unit in all_units:
     # Draw sanity bar (blue)
 ```
 
-**Layer 3: Selection Highlight**
+**Layer 3: Selection Highlights (Session 5: Dual Highlight System)**
 ```python
-if selected_unit:
-    # Draw yellow border around selected unit's tile
+# Green highlight = Current turn unit (can act now)
+if current_turn_unit and current_turn_unit.position:
+    draw_highlight(current_turn_unit.position, color=COLOR_CURRENT_TURN)  # Green
+
+# Yellow highlight = Selected for viewing (if different from current turn)
+if selected_unit and selected_unit.position:
+    if selected_unit != current_turn_unit:
+        draw_highlight(selected_unit.position, color=COLOR_SELECTED)  # Yellow
 ```
 
 **Layer 4: UI Overlay**
 ```python
-# Top: Turn number and phase
-# Left: Investigator tiles panel (4 tiles stacked)
-# Right: Unit info panel
-# Bottom: Action bar (10 slots, centered)
+# Top: Round number and current turn unit name
+#      "ROUND 2 | Player Turn: Sarah Mitchell"
+# Left: Investigator tiles panel (4 tiles stacked, 510×180px each)
+# Right: Unit info panel (stats for selected/current unit)
+# Bottom: Action bar (10 slots, centered, 790px wide)
+#         End Turn button (right of action bar, 150×70px)
 ```
 
 ### Win/Lose Conditions
@@ -479,12 +537,15 @@ The battle system currently supports:
 - ✅ ASCII fallback for systems without emoji fonts
 - ✅ Unit selection (mouse click, Tab cycling)
 - ✅ Enemy unit selection (click any unit to view stats for tactical intelligence)
-- ✅ Turn tracking (player/enemy phases)
+- ✅ **Turn order system** (Session 5: individual unit turns, random order)
+- ✅ **Dual highlight system** (Session 5: green=current turn, yellow=viewing)
+- ✅ **End Turn button** (Session 5: advance to next unit)
+- ✅ **Round tracking** (Session 5: full cycle through all units)
 - ✅ Health/sanity bar visualization
 - ✅ Investigator tiles panel (left side, 4 stacked tiles)
-- ✅ Action bar (bottom center, 10 slots with hotkeys)
-- ✅ Synchronized selection (grid ↔ tiles ↔ Tab ↔ action bar)
-- ✅ Smart UI behavior (action bar clears when enemy selected)
+- ✅ Action bar (bottom center, 10 slots with hotkeys, tied to current turn unit)
+- ✅ Synchronized selection (grid ↔ tiles ↔ Tab)
+- ✅ Smart UI behavior (action bar shows current turn unit only)
 
 **Not yet implemented**:
 - ❌ Movement (clicking tile to move or using action bar)
@@ -505,7 +566,8 @@ These features will be added in the next development session.
 - **Unit Base**: `entities/unit.py` (240 lines)
 - **Investigators**: `entities/investigator.py` (170 lines)
 - **Enemies**: `entities/enemy.py` (220 lines)
-- **Battle Screen**: `combat/battle_screen.py` (500 lines)
+- **Battle Screen**: `combat/battle_screen.py` (~850 lines with turn order system)
+- **Turn Order Tests**: `testing/test_turn_order.py` (Session 5)
 
 ---
 
@@ -526,7 +588,9 @@ The battle system provides:
 - **10x10 grid** with cover system
 - **Dual resource units** (health + sanity)
 - **Two enemy types** with different behaviors
-- **Turn-based gameplay** (player/enemy phases)
-- **Visual feedback** (health bars, selection, unit info)
+- **Turn order system** (Session 5: individual unit turns, random order)
+- **Dual highlight system** (Session 5: green for current turn, yellow for viewing)
+- **Visual feedback** (health bars, highlights, unit info, investigator tiles, action bar)
+- **End Turn button** (Session 5: advance through turn order)
 
 This foundation enables the next phase: adding movement, attacks, and AI to make the battle fully playable!

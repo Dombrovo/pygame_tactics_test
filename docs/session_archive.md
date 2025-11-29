@@ -88,22 +88,87 @@ Successfully implemented the tactical battle system foundation:
 
 ---
 
-## Session 4 Notes (Current - In Progress)
+## Session 5: Turn Order System ✅ COMPLETE
 
-**Date**: 2025-11-29
+**Completed**: 2025-11-29
 
-Session 4 is currently active. Recent additions:
+### What Was Built
 
-### Enemy Unit Selection (2025-11-29)
-- ✅ Enhanced selection system to allow viewing enemy stats
-- ✅ Click any unit (player or enemy) to view in info panel
-- ✅ Action bar clears when enemy selected (can't control)
-- ✅ Tab cycling limited to player units (command focus)
-- ✅ Tactical intelligence gathering before engagement
+Successfully replaced phase-based turns with individual unit turn order system:
+
+1. ✅ **Turn Order Structure**
+   - Random turn order initialization (all 8 units shuffled)
+   - Round tracking (round = all units take one turn)
+   - Automatic advancement with wrap-around
+   - Incapacitated units automatically skipped
+   - Future-ready for initiative stat implementation
+
+2. ✅ **End Turn Button**
+   - 150×70px button positioned right of action bar
+   - Click or Space key to advance turn
+   - Enemy turns auto-skip (AI placeholder)
+
+3. ✅ **Dual Highlight System**
+   - Green highlight for current turn unit (can act now)
+   - Yellow highlight for selected viewing (if different)
+   - Both highlights shown simultaneously for clarity
+
+4. ✅ **Action Bar Behavior Update**
+   - Now tied to current turn unit (not selected unit)
+   - Selecting other units shows their stats but doesn't change action bar
+   - Enforces proper turn structure
+
+5. ✅ **Visual Enhancements**
+   - Header shows: "ROUND X | Player/Enemy Turn: Unit Name"
+   - Console debug output shows full turn order at battle start
+   - Turn advancement messages for development
+
+6. ✅ **Testing**
+   - Comprehensive test suite (`testing/test_turn_order.py`)
+   - All tests passing (initialization, advancement, skipping, wrapping, team mixing)
+
+### Configuration Changes
+- Added `COLOR_CURRENT_TURN = (100, 255, 100)` to config.py
+
+### Impact
+- More tactical depth (must plan around turn order)
+- X-COM-like feel (unit-based instead of phase-based)
+- Ready for initiative stat (replace random with stat-based order)
+- Clearer visual language (green=act, yellow=view)
+- Foundation for complex AI behaviors
+
+**For full Session 5 details, see**: [CLAUDE.md - Recent Development: Session 5](../CLAUDE.md#recent-development-session-5)
+
+---
+
+## Session 4: UI Enhancements ✅ COMPLETE
+
+**Completed**: 2025-11-29
+
+### What Was Built
+
+1. ✅ **Investigator Tiles Panel**
+   - Large information-rich tiles (510×180px)
+   - Character portrait display with automatic image loading
+   - Two-line name display, health/sanity bars, compact stats
+   - Battle screen integration (left panel, 4 stacked tiles)
+
+2. ✅ **Action Bar System**
+   - 10-slot action bar (70×70px buttons) with hotkey indicators
+   - Icon/emoji display with text labels
+   - Mouse + keyboard support (hotkeys 1-0)
+   - Auto-updates based on selected investigator
+
+3. ✅ **Enemy Unit Selection**
+   - Enhanced selection system to allow viewing enemy stats
+   - Click any unit (player or enemy) to view in info panel
+   - Action bar clears when enemy selected (can't control)
+   - Tab cycling limited to player units (command focus)
+   - Tactical intelligence gathering before engagement
 
 **For full Session 4 details, see**: [CLAUDE.md - Recent Development: Session 4](../CLAUDE.md#recent-development-session-4)
 
 ---
 
-**Last Updated**: 2025-11-29 (Session 4 - Enemy Selection)
+**Last Updated**: 2025-11-29 (Session 5 - Turn Order System)
 **See Also**: [CLAUDE.md](../CLAUDE.md) for current session

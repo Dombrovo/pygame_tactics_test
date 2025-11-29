@@ -76,7 +76,8 @@ COLOR_MENU_BORDER = (100, 100, 140)       # Border color for all buttons
 COLOR_GRID = (50, 50, 60)             # Grid lines on battlefield
 COLOR_PLAYER = (100, 150, 255)        # Player unit highlight (blue)
 COLOR_ENEMY = (255, 100, 100)         # Enemy unit highlight (red)
-COLOR_SELECTED = (255, 255, 100)      # Currently selected unit (yellow)
+COLOR_SELECTED = (255, 255, 100)      # Currently selected unit for viewing (yellow)
+COLOR_CURRENT_TURN = (100, 255, 100)  # Unit whose turn it is (green)
 COLOR_VALID_MOVE = (100, 255, 100)    # Valid movement tiles (green)
 COLOR_ATTACK_RANGE = (255, 100, 100)  # Attack range indicator (red)
 
