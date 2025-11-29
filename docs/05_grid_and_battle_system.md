@@ -328,17 +328,32 @@ def _grid_to_pixel(self, grid_x, grid_y):
 
 **Mouse Controls**:
 ```python
-# Left click on grid
-→ Selects player unit at that position
-→ Shows unit stats in info panel
+# Left click on grid (any unit)
+→ Selects ANY unit (player or enemy) to view stats
+→ Shows unit stats in info panel (right side)
+→ Works during both player and enemy turns
 
-# Left click on empty tile (Phase 2)
+# Left click on investigator tile
+→ Selects that investigator for commands (player turn only)
+→ Updates action bar with available actions
+
+# Left click on action bar buttons
+→ Executes selected action (Move, Attack, etc.)
+→ Hotkeys 1-0 also work
+
+# Left click on empty tile (Phase 2 - not yet implemented)
 → Move selected unit there
 → Attack enemy there (if in range)
 ```
 
+**Selection Behavior**:
+- **Grid clicks** = View any unit's stats (intelligence gathering)
+- **Investigator tiles** = Command player units (player turn only)
+- **Action bar** = Only populates for player units (can't control enemies)
+
 **Keyboard Controls**:
-- **Tab**: Cycle through player units
+- **Tab**: Cycle through player units (command focus, not enemy units)
+- **1-0**: Trigger action bar slots (hotkeys for abilities)
 - **Space**: End turn (switch player ↔ enemy phase)
 - **ESC**: Return to main menu
 
@@ -463,11 +478,13 @@ The battle system currently supports:
 - ✅ Team color coding (blue vs red)
 - ✅ ASCII fallback for systems without emoji fonts
 - ✅ Unit selection (mouse click, Tab cycling)
+- ✅ Enemy unit selection (click any unit to view stats for tactical intelligence)
 - ✅ Turn tracking (player/enemy phases)
 - ✅ Health/sanity bar visualization
 - ✅ Investigator tiles panel (left side, 4 stacked tiles)
 - ✅ Action bar (bottom center, 10 slots with hotkeys)
 - ✅ Synchronized selection (grid ↔ tiles ↔ Tab ↔ action bar)
+- ✅ Smart UI behavior (action bar clears when enemy selected)
 
 **Not yet implemented**:
 - ❌ Movement (clicking tile to move or using action bar)

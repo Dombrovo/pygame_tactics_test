@@ -156,6 +156,24 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
   - Event handling (mouse + keyboard)
   - Disabled controls help text (replaced by action bar)
 
+#### 14. Enemy Unit Selection (Session 4)
+- ✅ Enhanced selection system for tactical intelligence
+  - Click any unit (player or enemy) to view stats
+  - Works during both player and enemy turns
+  - Yellow highlight on currently inspected unit
+- ✅ Smart UI behavior
+  - Action bar clears when enemy selected (can't control)
+  - Investigator tiles for player commands (player turn only)
+  - Tab cycling limited to player units (command focus)
+- ✅ Enemy stats display in right panel
+  - Health, sanity, accuracy, will, movement
+  - Weapon range and attack type (ranged/melee)
+  - Sanity damage for eldritch enemies
+- ✅ Tactical benefits
+  - Scout enemy capabilities before engagement
+  - Identify priority targets (low HP, high threat)
+  - Strategic planning based on enemy stats
+
 ### 🚧 In Progress
 
 **Next Task**: Combat Mechanics (Movement, Attacks, Line of Sight)
@@ -357,6 +375,38 @@ Successfully implemented a 10-slot action bar for displaying investigator abilit
 - Visual feedback for available/unavailable actions
 - Extensible system ready for Phase 2 abilities
 - Improved UX compared to text-based controls
+
+### Enemy Unit Selection (Intelligence Gathering)
+
+Successfully enhanced the selection system to allow viewing enemy unit stats for tactical intelligence:
+
+**Key Features**:
+- Click ANY unit (player or enemy) to view stats in right panel
+- Selection works during both player and enemy turns
+- Yellow highlight shows currently inspected unit
+- Action bar automatically clears when enemy selected (can't control enemies)
+- Investigator tiles remain for commanding player units (player turn only)
+- Tab cycling still limited to player units for quick command access
+
+**Selection Behavior**:
+- **Grid clicks** → Select any unit to view stats (intelligence gathering)
+- **Investigator tiles** → Select player units for commands (player turn only)
+- **Tab key** → Cycle through player units (command cycling)
+- **Action bar** → Only populates for player units (command interface)
+
+**Enemy Stats Displayed**:
+When selecting enemies, the right panel shows:
+- Name, team, position
+- Current/max health and sanity
+- Accuracy, will, movement range
+- Weapon range, attack type (ranged/melee)
+- Sanity damage (for eldritch enemies)
+
+**Impact**:
+- **Tactical intelligence** - Scout enemy stats before engaging
+- **Threat assessment** - Identify priority targets (low HP, high damage)
+- **Strategic planning** - Plan attacks based on enemy capabilities
+- **Clean interface** - Viewing doesn't interfere with command controls
 
 **For detailed session history, see**: [docs/session_archive.md](docs/session_archive.md)
 

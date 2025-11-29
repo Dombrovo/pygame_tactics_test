@@ -88,5 +88,22 @@ Successfully implemented the tactical battle system foundation:
 
 ---
 
-**Last Updated**: 2025-11-29
+## Session 4 Notes (Current - In Progress)
+
+**Date**: 2025-11-29
+
+Session 4 is currently active. Recent additions:
+
+### Enemy Unit Selection (2025-11-29)
+- ✅ Enhanced selection system to allow viewing enemy stats
+- ✅ Click any unit (player or enemy) to view in info panel
+- ✅ Action bar clears when enemy selected (can't control)
+- ✅ Tab cycling limited to player units (command focus)
+- ✅ Tactical intelligence gathering before engagement
+
+**For full Session 4 details, see**: [CLAUDE.md - Recent Development: Session 4](../CLAUDE.md#recent-development-session-4)
+
+---
+
+**Last Updated**: 2025-11-29 (Session 4 - Enemy Selection)
 **See Also**: [CLAUDE.md](../CLAUDE.md) for current session

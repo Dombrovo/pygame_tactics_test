@@ -305,12 +305,17 @@ class BattleScreen:
         1. Convert pixel coordinates to grid coordinates
         2. Check if click was inside the grid
         3. Get the tile at that grid position
-        4. If tile has a unit, select it (player units only during player turn)
+        4. If tile has a unit, select it (any unit can be selected for viewing stats)
+
+        Selection behavior:
+        - ANY unit can be selected to view stats in the right panel
+        - Player units show actions in the action bar
+        - Enemy units clear the action bar (can't control enemies)
+        - Investigator tiles highlight which player unit is "active"
 
         Future expansion (Phase 1.5):
         - If unit selected and click is empty tile: Move to that tile
         - If unit selected and click is enemy: Attack that enemy
-        - Right-click for unit info/options
 
         Args:
             mouse_pos: (x, y) pixel coordinates of where user clicked
@@ -333,24 +338,32 @@ class BattleScreen:
         if tile.is_occupied():
             unit = tile.occupied_by
 
-            # Only select player units during player turn
-            # (Can't select enemies or units during enemy phase)
-            if self.current_phase == "player_turn" and unit.team == "player":
-                self.selected_unit = unit
-                self._update_tile_selection()
-                self._update_action_bar()
-                print(f"Selected: {unit.name}")
+            # Select any unit (player or enemy) to view stats
+            self.selected_unit = unit
+
+            # Update investigator tile selection (only highlights if player unit)
+            self._update_tile_selection()
+
+            # Update action bar (only populates if player unit)
+            self._update_action_bar()
+
+            # Print team indicator for clarity
+            team_indicator = "Player" if unit.team == "player" else "Enemy"
+            print(f"Selected: {unit.name} ({team_indicator})")
 
     def _on_investigator_tile_click(self, investigator: Investigator):
         """
         Callback when an investigator tile is clicked.
 
         This is called by InvestigatorTile when the user clicks on it.
+        Investigator tiles are for selecting units to command, so they
+        only work during player turn. To view stats at any time, click
+        units directly on the grid.
 
         Args:
             investigator: The investigator whose tile was clicked
         """
-        # Only allow selection during player turn
+        # Only allow selection during player turn (tiles are for commanding units)
         if self.current_phase != "player_turn":
             return
 
@@ -358,7 +371,7 @@ class BattleScreen:
         self.selected_unit = investigator
         self._update_tile_selection()
         self._update_action_bar()
-        print(f"Selected: {investigator.name}")
+        print(f"Selected: {investigator.name} (Player)")
 
     def _update_tile_selection(self):
         """
