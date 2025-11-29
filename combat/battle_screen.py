@@ -7,9 +7,10 @@ combat takes place.
 
 import pygame
 import random
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Set
 import config
 from combat.grid import Grid
+from combat.pathfinding import find_path, get_reachable_tiles
 from entities.unit import Unit
 from entities.investigator import Investigator, create_test_squad
 from entities.enemy import Enemy, create_test_enemies
@@ -77,6 +78,10 @@ class BattleScreen:
         self.selected_unit: Optional[Unit] = None  # Unit being viewed (not necessarily whose turn it is)
         self.turn_number = 1
         self.round_number = 1  # A round = all units have taken one turn
+
+        # Movement state
+        self.reachable_tiles: Set[Tuple[int, int]] = set()  # Valid movement destinations for current turn unit
+        self.show_movement_range = False  # Whether to show movement highlights
 
         # Calculate grid rendering offset (center on screen)
         self.grid_pixel_size = config.GRID_SIZE * config.TILE_SIZE
@@ -237,6 +242,7 @@ class BattleScreen:
         self.selected_unit = self.current_turn_unit
         self._update_tile_selection()
         self._update_action_bar()
+        self._update_movement_range()  # Calculate initial movement range
 
         # Print initial turn information
         if self.current_turn_unit:
@@ -395,6 +401,7 @@ class BattleScreen:
         2. Check if click was inside the grid
         3. Get the tile at that grid position
         4. If tile has a unit, select it (any unit can be selected for viewing stats)
+        5. If tile is empty and reachable, move current turn unit there
 
         Selection behavior:
         - ANY unit can be selected to view stats in the right panel
@@ -402,9 +409,10 @@ class BattleScreen:
         - Enemy units clear the action bar (can't control enemies)
         - Investigator tiles highlight which player unit is "active"
 
-        Future expansion (Phase 1.5):
-        - If unit selected and click is empty tile: Move to that tile
-        - If unit selected and click is enemy: Attack that enemy
+        Movement behavior:
+        - Click reachable tile to move current turn unit
+        - Movement consumes movement action (has_moved flag set)
+        - Movement range shown in green when it's player's turn
 
         Args:
             mouse_pos: (x, y) pixel coordinates of where user clicked
@@ -436,9 +444,130 @@ class BattleScreen:
             # Update action bar (only populates if player unit)
             self._update_action_bar()
 
+            # Update movement range if selecting current turn unit
+            self._update_movement_range()
+
             # Print team indicator for clarity
             team_indicator = "Player" if unit.team == "player" else "Enemy"
             print(f"Selected: {unit.name} ({team_indicator})")
+        else:
+            # Clicked on empty tile - check if it's a movement command
+            if self._try_move_to_tile(grid_x, grid_y):
+                # Movement successful
+                # Update movement range (may have changed after move)
+                self._update_movement_range()
+
+    def _try_move_to_tile(self, target_x: int, target_y: int) -> bool:
+        """
+        Attempt to move current turn unit to target tile.
+
+        Args:
+            target_x: Target grid X coordinate
+            target_y: Target grid Y coordinate
+
+        Returns:
+            True if movement was successful, False otherwise
+        """
+        # Can only move if:
+        # 1. It's a player unit's turn
+        # 2. Unit can still move this turn
+        # 3. Target tile is reachable
+
+        if not self.current_turn_unit:
+            return False
+
+        # Only allow moving player units
+        if self.current_turn_unit.team != "player":
+            return False
+
+        # Check if unit can still move
+        if not self.current_turn_unit.can_move():
+            print(f"{self.current_turn_unit.name} cannot move (already moved twice or attacked)")
+            return False
+
+        # Check if target is reachable
+        if (target_x, target_y) not in self.reachable_tiles:
+            return False
+
+        # Get current position
+        if not self.current_turn_unit.position:
+            return False
+
+        current_x, current_y = self.current_turn_unit.position
+
+        # Find path to target
+        path = find_path(self.grid, current_x, current_y, target_x, target_y,
+                        max_distance=self.current_turn_unit.movement_range)
+
+        if not path:
+            print(f"No path found to ({target_x}, {target_y})")
+            return False
+
+        # Execute movement
+        if self.grid.move_unit(current_x, current_y, target_x, target_y):
+            # Mark unit as having moved
+            self.current_turn_unit.has_moved = True
+
+            print(f"{self.current_turn_unit.name} moved from ({current_x}, {current_y}) to ({target_x}, {target_y})")
+            print(f"  Path length: {len(path)} tiles")
+
+            # Update action bar to reflect new action state
+            self._update_action_bar()
+
+            return True
+        else:
+            print(f"Failed to move unit")
+            return False
+
+    def _update_movement_range(self):
+        """
+        Update the set of reachable tiles for the current turn unit.
+
+        Called when:
+        - Turn advances to new unit
+        - Current turn unit moves (range may change)
+        - Unit selection changes (to show/hide range)
+        """
+        # Clear existing range
+        self.reachable_tiles.clear()
+        self.show_movement_range = False
+
+        # Only show movement range if:
+        # 1. It's a player unit's turn
+        # 2. Unit can still move
+        # 3. Unit is the selected unit (for clarity)
+
+        if not self.current_turn_unit:
+            return
+
+        # Only show for player units
+        if self.current_turn_unit.team != "player":
+            return
+
+        # Only show if unit can move
+        if not self.current_turn_unit.can_move():
+            return
+
+        # Only show if this unit is selected
+        if self.selected_unit != self.current_turn_unit:
+            return
+
+        # Get unit's current position
+        if not self.current_turn_unit.position:
+            return
+
+        x, y = self.current_turn_unit.position
+
+        # Calculate reachable tiles
+        self.reachable_tiles = get_reachable_tiles(
+            self.grid, x, y,
+            self.current_turn_unit.movement_range
+        )
+
+        # Show movement range highlights
+        self.show_movement_range = True
+
+        print(f"Movement range: {len(self.reachable_tiles)} tiles reachable")
 
     def _on_investigator_tile_click(self, investigator: Investigator):
         """
@@ -669,6 +798,7 @@ class BattleScreen:
         # Update UI
         self._update_tile_selection()
         self._update_action_bar()
+        self._update_movement_range()  # Calculate movement range for new turn
 
         # Update turn order tracker with new current turn index
         self.turn_order_tracker.update_turn_order(self.turn_order, self.current_turn_index)
@@ -874,8 +1004,14 @@ class BattleScreen:
                 # Calculate pixel position
                 pixel_x, pixel_y = self._grid_to_pixel(x, y)
 
-                # Tile background color based on terrain
-                if tile.terrain_type == "full_cover":
+                # Check if this tile is reachable (for movement highlighting)
+                is_reachable = self.show_movement_range and (x, y) in self.reachable_tiles
+
+                # Tile background color based on terrain and reachability
+                if is_reachable:
+                    # Green tint for reachable tiles
+                    color = (40, 60, 40)  # Green-tinted for movement
+                elif tile.terrain_type == "full_cover":
                     color = (50, 50, 70)  # Darker for full cover
                 elif tile.terrain_type == "half_cover":
                     color = (35, 35, 50)  # Medium for half cover
@@ -888,6 +1024,10 @@ class BattleScreen:
 
                 # Draw grid lines
                 pygame.draw.rect(self.screen, config.COLOR_GRID, tile_rect, 1)
+
+                # Draw movement range indicator (subtle border)
+                if is_reachable:
+                    pygame.draw.rect(self.screen, config.COLOR_VALID_MOVE, tile_rect, 2)
 
                 # Draw cover symbol
                 if tile.terrain_type != "empty":

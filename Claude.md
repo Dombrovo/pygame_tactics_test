@@ -17,10 +17,53 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
 
 ---
 
+## ⚠️ CRITICAL CODING GUIDELINES
+
+### **DO NOT Use Unicode/Emoji in Command-Line Output**
+
+**Platform**: Windows (primary development environment)
+
+**Issue**: Windows console (cmd.exe) uses CP1252 encoding by default, which CANNOT display:
+- Emoji symbols (✓, ✗, ✔, ✘, ⚠, etc.)
+- Unicode arrows (→, ←, ↑, ↓, ⇒, etc.)
+- Box drawing characters (╔, ║, ═, ╗, etc.)
+
+**Result**: `UnicodeEncodeError: 'charmap' codec can't encode character...`
+
+**ALWAYS Use ASCII Alternatives**:
+```python
+# ❌ WRONG - Will crash on Windows
+print(f"✓ Test passed")
+print(f"Path: (0,0) → (3,3)")
+
+# ✅ CORRECT - Works everywhere
+print(f"[OK] Test passed")
+print(f"Path: (0,0) -> (3,3)")
+```
+
+**ASCII Alternatives**:
+- ✓ → `[OK]` or `PASS`
+- ✗ → `[X]` or `FAIL`
+- → → `->`
+- ⚠ → `[!]` or `WARNING`
+
+**Where This Applies**:
+- Test scripts (`testing/*.py`)
+- Debug print statements
+- Console output
+- Any Python `print()` to terminal
+
+**Where Unicode IS Okay**:
+- Pygame rendered text (uses font rendering, not console)
+- JSON data files
+- Markdown documentation
+
+---
+
 ## Current Development State
 
-**Last Updated**: 2025-11-29 (Session 6)
-**Current Phase**: Phase 1 - MVP (~80% Complete - Turn Order Tracker Complete, Combat Mechanics Next)
+**Last Updated**: 2025-11-30 (Session 7)
+**Current Phase**: Phase 1 - MVP (~90% Complete - Movement System Complete, Attacks Next)
 
 ### ✅ Completed Components
 
@@ -224,9 +267,45 @@ A turn-based tactical game inspired by X-COM, featuring squads of flawed investi
   - Clean visual hierarchy (portraits vs symbols)
   - Always-visible current turn information
 
+#### 17. Movement System (Session 7)
+- ✅ Pathfinding module (`combat/pathfinding.py`)
+  - **A* algorithm** for optimal path finding
+  - Configurable movement costs (orthogonal: 1.0, diagonal: 1.414)
+  - Path validation with max distance limits
+  - Obstacle avoidance (units block movement)
+  - Cover passable (units can move through cover)
+- ✅ Reachable tiles calculation
+  - **Flood-fill algorithm** for efficient range finding
+  - Returns all tiles within movement range
+  - Excludes occupied tiles
+  - Used for highlighting valid destinations
+- ✅ Battle screen integration
+  - Green tile highlighting for valid movement destinations
+  - Shows movement range when player unit selected on their turn
+  - Click-to-move functionality (click green tile to move there)
+  - Path length validation before movement
+  - Movement action tracking (`has_moved` flag)
+  - Auto-updates range after movement
+- ✅ Action economy
+  - Move + Attack OR Move + Move per turn
+  - Movement disabled after attacking
+  - Second move disabled after first attack
+  - Range recalculates after each move
+- ✅ Visual feedback
+  - Green tint on reachable tiles
+  - Green border (2px) around reachable tiles
+  - Range cleared when enemy turn or unit can't move
+  - Console feedback (path length, tiles reachable)
+- ✅ Testing
+  - Comprehensive test suite (`testing/test_movement.py`)
+  - Tests pathfinding, obstacles, range calculation
+  - Tests all 4 investigator movement stats
+  - Tests unit blocking (no movement through units)
+  - **All tests passing** (ASCII output for Windows compatibility)
+
 ### 🚧 In Progress
 
-**Next Task**: Combat Mechanics (Movement, Attacks, Line of Sight)
+**Next Task**: Combat Resolution (Attacks, Hit Chance, Line of Sight)
 
 ---
 
