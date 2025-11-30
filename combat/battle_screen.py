@@ -14,7 +14,7 @@ from combat.pathfinding import find_path, get_reachable_tiles
 from entities.unit import Unit
 from entities.investigator import Investigator, create_test_squad
 from entities.enemy import Enemy, create_test_enemies
-from ui.ui_elements import InvestigatorTile, ActionBar, Button, TurnOrderTracker
+from ui.ui_elements import InvestigatorTile, ActionBar, Button, TurnOrderTracker, ActionPointsDisplay
 
 
 class BattleScreen:
@@ -231,6 +231,22 @@ class BattleScreen:
         )
 
         # ====================================================================
+        # Action Points Display (Bottom Left)
+        # ====================================================================
+        # Position in bottom-left corner with 20px padding
+        ap_display_width = 200
+        ap_display_height = 100
+        ap_display_x = 20  # 20px from left edge
+        ap_display_y = action_bar_y  # Aligned with action bar vertically
+
+        self.action_points_display = ActionPointsDisplay(
+            x=ap_display_x,
+            y=ap_display_y,
+            width=ap_display_width,
+            height=ap_display_height
+        )
+
+        # ====================================================================
         # Initialize Turn Order Tracker Data
         # ====================================================================
         # Now that turn order is established, populate the tracker
@@ -244,6 +260,7 @@ class BattleScreen:
         self.selected_unit = self.current_turn_unit
         self._update_tile_selection()
         self._update_action_bar()
+        self._update_action_points_display()
         self._update_movement_range()  # Calculate initial movement range
 
         # Print initial turn information
@@ -484,7 +501,7 @@ class BattleScreen:
 
         # Check if unit can still move
         if not self.current_turn_unit.can_move():
-            print(f"{self.current_turn_unit.name} cannot move (already moved twice or attacked)")
+            print(f"{self.current_turn_unit.name} cannot move (no action points remaining)")
             return False
 
         # Check if target is reachable
@@ -507,14 +524,16 @@ class BattleScreen:
 
         # Execute movement
         if self.grid.move_unit(current_x, current_y, target_x, target_y):
-            # Mark unit as having moved
-            self.current_turn_unit.has_moved = True
+            # Consume 1 action point for movement
+            self.current_turn_unit.consume_action_point(1)
 
             print(f"{self.current_turn_unit.name} moved from ({current_x}, {current_y}) to ({target_x}, {target_y})")
             print(f"  Path length: {len(path)} tiles")
+            print(f"  Action points remaining: {self.current_turn_unit.current_action_points}/{self.current_turn_unit.max_action_points}")
 
-            # Update action bar to reflect new action state
+            # Update UI to reflect new action state
             self._update_action_bar()
+            self._update_action_points_display()
 
             return True
         else:
@@ -662,6 +681,19 @@ class BattleScreen:
             self.action_bar.update_for_investigator(self.current_turn_unit)
         else:
             self.action_bar.clear()
+
+    def _update_action_points_display(self):
+        """
+        Update action points display to show current turn unit's remaining actions.
+
+        Called whenever:
+        - Turn advances to new unit
+        - Action is performed (movement, attack)
+        """
+        if self.current_turn_unit:
+            self.action_points_display.update_for_unit(self.current_turn_unit)
+        else:
+            self.action_points_display.update_for_unit(None)
 
     def _pixel_to_grid(self, pixel_pos: Tuple[int, int]) -> Tuple[Optional[int], Optional[int]]:
         """
@@ -843,6 +875,7 @@ class BattleScreen:
         # Update UI
         self._update_tile_selection()
         self._update_action_bar()
+        self._update_action_points_display()
         self._update_movement_range()  # Calculate movement range for new turn
         self.deactivate_movement_mode()  # Clear any active movement mode from previous turn
 
@@ -1022,6 +1055,9 @@ class BattleScreen:
 
         # Draw end turn button
         self.end_turn_button.draw(self.screen)
+
+        # Draw action points display (bottom left)
+        self.action_points_display.draw(self.screen)
 
         # Controls help disabled - action bar replaces it
         # self._draw_controls_help()

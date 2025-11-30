@@ -1392,6 +1392,11 @@ class ActionBar:
         """
         Update action bar to show actions for the given investigator.
 
+        Now respects action points system:
+        - Buttons are enabled/disabled based on available action points
+        - Move button enabled if can_move() returns True
+        - Attack button enabled if can_attack() returns True
+
         Args:
             investigator: Investigator object whose actions to display
         """
@@ -1401,15 +1406,15 @@ class ActionBar:
         # In the future, this will be populated from investigator.abilities
 
         if investigator and not investigator.is_incapacitated:
-            # Enable Move button (slot 0)
+            # Move button (slot 0) - enabled if unit can move
             self.action_buttons[0].text = "Move"
             self.action_buttons[0].icon = "↗"
-            self.action_buttons[0].enabled = True
+            self.action_buttons[0].enabled = investigator.can_move()
 
-            # Enable Attack button (slot 1)
+            # Attack button (slot 1) - enabled if unit can attack
             self.action_buttons[1].text = "Attack"
             self.action_buttons[1].icon = "⚔"
-            self.action_buttons[1].enabled = True
+            self.action_buttons[1].enabled = investigator.can_attack()
 
             # Disable remaining slots (no abilities yet)
             for i in range(2, 10):
@@ -1475,3 +1480,100 @@ class ActionBar:
         """Draw all action buttons."""
         for button in self.action_buttons:
             button.draw(screen)
+
+
+class ActionPointsDisplay:
+    """
+    Visual display of remaining action points for the current turn unit.
+
+    Shows circular indicators for each action point (filled = available, empty = used).
+    Positioned in the bottom-left corner of the screen.
+    """
+
+    def __init__(self, x: int, y: int, width: int = 200, height: int = 100):
+        """
+        Initialize the action points display.
+
+        Args:
+            x, y: Top-left position
+            width: Width of the display panel
+            height: Height of the display panel
+        """
+        self.rect = pygame.Rect(x, y, width, height)
+        self.current_unit = None
+        self.circle_radius = 18  # Radius of each action point circle
+
+    def update_for_unit(self, unit) -> None:
+        """
+        Update the display for the given unit.
+
+        Args:
+            unit: Unit whose action points to display (or None to clear)
+        """
+        self.current_unit = unit
+
+    def draw(self, screen: pygame.Surface) -> None:
+        """
+        Draw the action points display.
+
+        Shows circles representing action points:
+        - Filled circles = available action points
+        - Empty circles = used action points
+        """
+        # Draw background panel
+        pygame.draw.rect(screen, config.COLOR_UI_BG, self.rect)
+        pygame.draw.rect(screen, config.COLOR_MENU_BORDER, self.rect, 2)
+
+        if not self.current_unit:
+            return
+
+        # Draw "ACTIONS" label
+        label_font = pygame.font.Font(None, 28)
+        label_surface = label_font.render("ACTIONS", True, config.COLOR_TEXT)
+        screen.blit(label_surface, (self.rect.x + 10, self.rect.y + 10))
+
+        # Get action points
+        max_ap = getattr(self.current_unit, 'max_action_points', 2)
+        current_ap = getattr(self.current_unit, 'current_action_points', 2)
+
+        # Draw action point circles
+        circle_y = self.rect.y + 55  # Below the label
+        circle_start_x = self.rect.x + (self.rect.width // 2) - (max_ap * (self.circle_radius + 5))
+
+        for i in range(max_ap):
+            circle_x = circle_start_x + (i * (self.circle_radius * 2 + 10))
+
+            # Determine if this action point is available
+            is_available = i < current_ap
+
+            if is_available:
+                # Filled circle (available action point)
+                pygame.draw.circle(
+                    screen,
+                    config.COLOR_TEXT_HIGHLIGHT,  # Golden color
+                    (circle_x, circle_y),
+                    self.circle_radius
+                )
+                # Inner glow effect
+                pygame.draw.circle(
+                    screen,
+                    (255, 230, 150),  # Lighter gold
+                    (circle_x, circle_y),
+                    self.circle_radius - 4
+                )
+            else:
+                # Empty circle (used action point)
+                pygame.draw.circle(
+                    screen,
+                    config.COLOR_TEXT_DIM,  # Dim gray
+                    (circle_x, circle_y),
+                    self.circle_radius,
+                    3  # Outline only (hollow circle)
+                )
+
+        # Draw action point count text
+        count_font = pygame.font.Font(None, 24)
+        count_text = f"{current_ap}/{max_ap}"
+        count_surface = count_font.render(count_text, True, config.COLOR_TEXT)
+        count_rect = count_surface.get_rect(centerx=self.rect.centerx, bottom=self.rect.bottom - 5)
+        screen.blit(count_surface, count_rect)

@@ -77,8 +77,12 @@ class Unit:
 
         # Status flags
         self.is_incapacitated = False
-        self.has_moved = False      # Track if unit moved this turn
-        self.has_attacked = False   # Track if unit attacked this turn
+
+        # Action Points System (2 actions per turn)
+        # Each action can be: Move or Attack
+        # Allows: Move-Move, Move-Attack, Attack-Move, Attack-Attack
+        self.max_action_points = 2
+        self.current_action_points = 2
 
     # --- CALCULATED STATS (Properties: base + modifiers) ---
     # These are Python @property decorators, which make methods act like attributes
@@ -294,44 +298,67 @@ class Unit:
 
     def reset_turn_flags(self):
         """
-        Reset per-turn flags (called at start of turn).
+        Reset per-turn action points (called at start of turn).
 
-        In MVP: Units can Move + Attack OR Move twice per turn.
+        Each turn, units get 2 action points.
+        Actions cost:
+        - Move: 1 action point
+        - Attack: 1 action point
+
+        This allows: Move-Move, Move-Attack, Attack-Move, or Attack-Attack.
         """
-        self.has_moved = False
-        self.has_attacked = False
+        self.current_action_points = self.max_action_points
 
     def can_move(self) -> bool:
         """
         Check if unit can move this turn.
 
-        Action economy (MVP):
-        - Each turn, units can: Move + Attack OR Move + Move
-        - If you attack, you can't move a second time
-        - If you move twice, you can't attack
+        Action economy (2 action points):
+        - Move costs 1 action point
+        - Can move if at least 1 action point remains
 
         Returns:
-            True if unit hasn't exhausted movement options
+            True if unit has action points to move
         """
-        # Can move if: haven't attacked yet, OR haven't moved at all
-        # This allows: Move→Move OR Move→Attack
-        return not self.has_attacked or not self.has_moved
+        return self.current_action_points >= 1
 
     def can_attack(self) -> bool:
         """
         Check if unit can attack this turn.
 
-        Attack rules (MVP):
-        - Can attack once per turn
-        - Can attack after 0 or 1 moves
-        - Cannot attack after moving twice
+        Action economy (2 action points):
+        - Attack costs 1 action point
+        - Can attack if at least 1 action point remains
+        - Can attack multiple times if action points available
 
         Returns:
-            True if unit can still attack this turn
+            True if unit has action points to attack
         """
-        # Can attack if: haven't attacked yet
-        # The flag tracks whether attack action was used, regardless of movement
-        return not self.has_attacked
+        return self.current_action_points >= 1
+
+    def consume_action_point(self, amount: int = 1) -> bool:
+        """
+        Consume action points when performing an action.
+
+        Args:
+            amount: Number of action points to consume (default 1)
+
+        Returns:
+            True if action points were consumed, False if not enough available
+        """
+        if self.current_action_points >= amount:
+            self.current_action_points -= amount
+            return True
+        return False
+
+    def has_actions_remaining(self) -> bool:
+        """
+        Check if unit has any action points remaining.
+
+        Returns:
+            True if current_action_points > 0
+        """
+        return self.current_action_points > 0
 
     def get_info_text(self) -> str:
         """

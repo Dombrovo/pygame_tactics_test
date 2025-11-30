@@ -63,7 +63,7 @@ print(f"Path: (0,0) -> (3,3)")
 ## Current Development State
 
 **Last Updated**: 2025-11-30 (Session 7)
-**Current Phase**: Phase 1 - MVP (~90% Complete - Movement System Complete, Attacks Next)
+**Current Phase**: Phase 1 - MVP (~95% Complete - Movement & Action Points Complete, Attacks Next)
 
 ### ✅ Completed Components
 
@@ -98,6 +98,7 @@ print(f"Path: (0,0) -> (3,3)")
 - ✅ ActionButton class (action bar slot component)
 - ✅ ActionBar class (10-slot ability/action bar)
 - ✅ TurnOrderTracker class (visual turn sequence display)
+- ✅ ActionPointsDisplay class (visual action points indicator)
 - ✅ Callback pattern implementation
 
 #### 4. Title Screen
@@ -284,7 +285,7 @@ print(f"Path: (0,0) -> (3,3)")
   - Green tile highlighting for valid movement destinations
   - Click-to-move functionality (click green tile to move there)
   - Path length validation before movement
-  - Movement action tracking (`has_moved` flag)
+  - Movement action tracking (consumes 1 action point)
   - Auto-updates range after movement
 - ✅ Movement mode state machine
   - `movement_mode_active` flag controls highlight visibility
@@ -296,12 +297,8 @@ print(f"Path: (0,0) -> (3,3)")
   - Move button (slot 0, hotkey 1) activates movement mode
   - Action bar callback system (`on_action_click`)
   - `_on_action_button_click()` handler routes actions
+  - Buttons auto-disable when no action points remain
   - Ready for Attack and future abilities
-- ✅ Action economy
-  - Move + Attack OR Move + Move per turn
-  - Movement disabled after attacking
-  - Second move disabled after first attack
-  - Range recalculates after each move
 - ✅ Visual feedback
   - Green tint on reachable tiles (only when mode active)
   - Green border (2px) around reachable tiles
@@ -312,6 +309,43 @@ print(f"Path: (0,0) -> (3,3)")
   - Tests pathfinding, obstacles, range calculation
   - Tests all 4 investigator movement stats
   - Tests unit blocking (no movement through units)
+  - **All tests passing** (ASCII output for Windows compatibility)
+
+#### 18. Action Points System (Session 7)
+- ✅ **2-Action Economy** - Each unit has 2 action points per turn
+  - Move costs 1 action point
+  - Attack costs 1 action point (when implemented)
+  - Valid combinations: Move-Move, Move-Attack, Attack-Move, Attack-Attack
+  - Replaces old boolean flags (has_moved/has_attacked)
+- ✅ Unit class updates (`entities/unit.py`)
+  - `max_action_points = 2` - Maximum actions per turn
+  - `current_action_points` - Remaining actions this turn
+  - `consume_action_point(amount)` - Consumes action points when acting
+  - `has_actions_remaining()` - Checks if any points remain
+  - `can_move()` and `can_attack()` now check action points
+  - `reset_turn_flags()` restores action points at turn start
+- ✅ ActionPointsDisplay UI component (200×100px, bottom-left)
+  - "ACTIONS" label at top
+  - Circular indicators for each action point:
+    - 🟡 Filled golden circles = available action points
+    - ⚪ Hollow gray circles = used action points
+  - "X/2" counter showing remaining actions
+  - Real-time updates as actions are used
+  - Golden glow effect on available actions
+- ✅ Battle screen integration
+  - Display positioned bottom-left, aligned with action bar
+  - Updates on turn advancement and action consumption
+  - `_update_action_points_display()` method
+  - Draws every frame showing current unit's remaining actions
+- ✅ Smart action bar behavior
+  - Move button enabled only if `can_move()` returns True
+  - Attack button enabled only if `can_attack()` returns True
+  - Buttons auto-gray-out when no action points remain
+  - Visual feedback for available vs unavailable actions
+- ✅ Testing
+  - Comprehensive test suite (`testing/test_action_points.py`)
+  - Tests initialization, consumption, reset, all combinations
+  - Verifies Move-Move, Move-Attack, Attack-Attack work correctly
   - **All tests passing** (ASCII output for Windows compatibility)
 
 ### 🚧 In Progress
@@ -353,7 +387,10 @@ pygame_tactics_test/
 ├── testing/                   # Test scripts
 │   ├── test_names.py
 │   ├── test_stat_system.py
-│   └── test_image_assignment.py
+│   ├── test_image_assignment.py
+│   ├── test_turn_order.py
+│   ├── test_movement.py
+│   └── test_action_points.py
 │
 └── docs/                      # Documentation
     ├── doc_index.md
@@ -370,15 +407,20 @@ pygame_tactics_test/
 
 ## Next Session Goals
 
-**Primary Objective**: Implement combat mechanics
+**Primary Objective**: Implement attack mechanics and combat resolution
 
 **Files to Create**:
-1. `combat/pathfinding.py` - A* pathfinding for movement
-2. `combat/line_of_sight.py` - Bresenham's line algorithm for LOS
-3. `combat/combat_resolver.py` - Hit chance calculation, damage resolution
+1. `combat/line_of_sight.py` - Bresenham's line algorithm for LOS
+2. `combat/combat_resolver.py` - Hit chance calculation, damage resolution
 
 **Files to Update**:
-4. `combat/battle_screen.py` - Add movement and attack actions
+3. `combat/battle_screen.py` - Add attack action implementation
+4. `entities/unit.py` - Add damage dealing methods (if needed)
+
+**Current Status**:
+- ✅ Movement system complete with A* pathfinding
+- ✅ Action points system fully implemented (2 actions per turn)
+- ⏳ Attack mechanics next (will consume 1 action point)
 
 **Estimated Time**: 2-3 hours
 
@@ -463,10 +505,12 @@ Successfully implemented a comprehensive investigator status panel for enhanced 
 │ [Tile 4: 510px] │              │                         │
 │   180px tall    │              │                         │
 └─────────────────┴──────────────┴─────────────────────────┘
-         ┌────────────────────┬───────────┐
-         │    ACTION BAR      │ End Turn  │
-         │ [1][2][3]...[0]    │  Button   │
-         └────────────────────┴───────────┘
+ ┌──────────┐  ┌────────────────────┬───────────┐
+ │ ACTIONS  │  │    ACTION BAR      │ End Turn  │
+ │  🟡 🟡   │  │ [1][2][3]...[0]    │  Button   │
+ │   2/2    │  │                    │           │
+ └──────────┘  └────────────────────┴───────────┘
+  ↑ Action Points Display (bottom-left)
 ```
 
 **Impact**:
@@ -648,6 +692,137 @@ Added to `config.py`:
 
 ---
 
+## Recent Development: Session 6
+
+**Completed**: 2025-11-29
+
+### Turn Order Tracker Visual Implementation
+
+Successfully added visual turn order display at the top of the battle screen:
+
+**Key Features**:
+- **Horizontal tracker bar** (1200×70px) showing all 8 units in sequence
+- **Portrait integration** - Investigators show character portraits, enemies show emoji
+- **Current turn highlight** - Green border (4px) around active unit's icon
+- **Hover feedback** - Golden border (3px) on mouse hover
+- **Mini health bars** - Color-coded health indicators at bottom of each icon
+- **Team color coding** - Blue background for players, red for enemies
+
+**Visual Design**:
+- Fixed position at top of screen (y=10)
+- "TURN ORDER:" label at top-left
+- Current turn info below label: "Player: Name" or "Enemy: Name"
+- Golden highlighted text for active unit
+- Always visible - no tooltips needed
+
+**Technical Implementation**:
+- Portrait image caching for performance
+- Automatic fallback to emoji symbols if image load fails
+- Updates on turn advancement via `update_turn_order()` method
+- Integrated with battle screen's turn system
+
+**Impact**:
+- At-a-glance turn sequence visibility
+- Enhanced character recognition via portraits vs symbols
+- Clean visual hierarchy
+- Always-visible current turn information
+- Reduced cognitive load (no need to remember turn order)
+
+---
+
+## Recent Development: Session 7
+
+**Completed**: 2025-11-30
+
+### Action Points System and Movement Implementation
+
+Successfully implemented a comprehensive 2-action points system and completed the movement mechanics:
+
+#### Movement System (A* Pathfinding)
+**Pathfinding Module** (`combat/pathfinding.py`):
+- **A* algorithm** for optimal path calculation
+- Configurable movement costs (orthogonal: 1.0, diagonal: 1.414)
+- Path validation with max distance limits
+- **Flood-fill algorithm** for reachable tiles calculation
+- Obstacle avoidance (units block movement, cover is passable)
+
+**Battle Screen Integration**:
+- Movement mode activation via Move button (hotkey 1)
+- Green tile highlighting for valid destinations
+- Click-to-move functionality
+- Movement range updates after each move
+- State machine prevents accidental moves (requires Move button click)
+
+**Testing**:
+- Comprehensive test suite (`testing/test_movement.py`)
+- All tests passing with ASCII output for Windows compatibility
+
+#### Action Points System
+**2-Action Economy**:
+- Each unit has 2 action points per turn
+- Move costs 1 AP, Attack costs 1 AP (when implemented)
+- Valid combinations: Move-Move, Move-Attack, Attack-Move, Attack-Attack
+- Replaces old boolean flags (`has_moved`/`has_attacked`)
+
+**Unit Class Updates** (`entities/unit.py`):
+- `max_action_points = 2` - Maximum actions per turn
+- `current_action_points` - Remaining actions this turn
+- `consume_action_point(amount)` - Consumes AP when acting
+- `has_actions_remaining()` - Checks if any points remain
+- `can_move()` and `can_attack()` now check action points
+- `reset_turn_flags()` restores action points at turn start
+
+**ActionPointsDisplay UI Component**:
+- Size: 200×100px, positioned bottom-left corner
+- "ACTIONS" label at top
+- Circular indicators for each action point:
+  - 🟡 Filled golden circles = available action points
+  - ⚪ Hollow gray circles = used action points
+- "X/2" counter showing remaining actions
+- Real-time updates as actions are consumed
+- Golden glow effect on available actions
+
+**Smart Action Bar Behavior**:
+- Move button enabled only if `can_move()` returns True
+- Attack button enabled only if `can_attack()` returns True
+- Buttons auto-gray-out when no action points remain
+- Visual feedback for available vs unavailable actions
+
+**Battle Screen Layout** (Updated):
+```
+┌────────────────────────────────────────────────────────┐
+│  TURN ORDER: Player: Name  [🖼️] [🔫] [🖼️] [🐺] [🖼️] [🔫]  │
+├─────────────┬──────────────────┬──────────────────────┤
+│ Inv Tile 1  │                  │ Selected Unit Info  │
+├─────────────┤   10×10 GRID     ├──────────────────────┤
+│ Inv Tile 2  │   (800×800)      │ Detailed stats      │
+├─────────────┤                  │                     │
+│ Inv Tile 3  │                  │                     │
+├─────────────┤                  │                     │
+│ Inv Tile 4  │                  │                     │
+└─────────────┴──────────────────┴──────────────────────┘
+ ┌──────────┐  ┌────────────────────┬───────────┐
+ │ ACTIONS  │  │    ACTION BAR      │ End Turn  │
+ │  🟡 🟡   │  │ [1][2][3]...[0]    │  Button   │
+ │   2/2    │  │                    │           │
+ └──────────┘  └────────────────────┴───────────┘
+```
+
+**Testing**:
+- Comprehensive test suite (`testing/test_action_points.py`)
+- Tests all action combinations (Move-Move, Move-Attack, Attack-Attack)
+- Verifies action point consumption, reset, and boundary conditions
+- All tests passing with ASCII output
+
+**Impact**:
+- Flexible action economy supports varied tactical approaches
+- Clear visual feedback on remaining actions
+- Foundation ready for attack implementation
+- Prevents action overflow bugs with smart button disabling
+- Enhanced player agency (multiple action combinations per turn)
+
+---
+
 ## Quick Reference
 
 ### Running the Game
@@ -695,8 +870,8 @@ uv run python main.py
 
 ---
 
-**Last Updated**: 2025-11-29 (Session 5)
-**Version**: 2.1 (Turn Order System)
+**Last Updated**: 2025-11-30 (Session 7)
+**Version**: 2.2 (Action Points System + Movement)
 **Target Platform**: Windows/Mac/Linux Desktop
 **Engine**: Pygame CE 2.5.x
 **Python**: 3.10+

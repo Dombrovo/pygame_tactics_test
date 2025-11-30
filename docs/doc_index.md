@@ -64,13 +64,21 @@ For detailed understanding of specific systems:
    - Distance calculations and neighbor finding
    - Current limitations and next steps
 
-6. **[Stat System with Modifiers](06_stat_system.md)** ⭐ NEW
+6. **[Stat System with Modifiers](06_stat_system.md)**
    - Base stats + modifiers pattern
    - Property-based calculated stats
    - Applying modifiers (backgrounds, traits, injuries)
    - Stat clamping rules (min/max enforcement)
    - API reference and usage examples
    - Integration with backgrounds and equipment
+
+7. **[Action Points System](07_action_points_system.md)** ⭐ NEW
+   - 2-action economy design philosophy
+   - Unit class integration (consume, check, reset)
+   - ActionPointsDisplay UI component
+   - Action bar smart enabling/disabling
+   - Valid action combinations (Move-Move, Move-Attack, etc.)
+   - Usage examples and testing
 
 ---
 
@@ -87,10 +95,12 @@ For detailed understanding of specific systems:
 | Understand the game loop | [01_pygame_fundamentals.md](01_pygame_fundamentals.md) |
 | Understand the battle system | [05_grid_and_battle_system.md](05_grid_and_battle_system.md) |
 | Understand the stat system | [06_stat_system.md](06_stat_system.md) |
+| Understand action points | [07_action_points_system.md](07_action_points_system.md) |
 | See complete click flow | [04_data_flow.md](04_data_flow.md#mouse-click-flow---detailed) |
 | Add a new menu option | [02_architecture_overview.md](02_architecture_overview.md#adding-a-new-screen) |
 | Add a new enemy type | [05_grid_and_battle_system.md](05_grid_and_battle_system.md#enemy-classes) |
 | Apply stat modifiers | [06_stat_system.md](06_stat_system.md#usage-examples) |
+| Consume action points | [07_action_points_system.md](07_action_points_system.md#usage-examples) |
 
 ### Code Files (with extensive comments)
 
@@ -318,8 +328,8 @@ These docs should be updated when:
 - New components are created
 - Performance characteristics change
 
-Last updated: 2025-11-29 (Session 4: Investigator Tiles Panel)
-Version: 0.1.0 (MVP Phase 1 - 75% Complete)
+Last updated: 2025-11-30 (Session 7: Action Points System + Movement)
+Version: 0.1.0 (MVP Phase 1 - 95% Complete)
 
 ---
 
