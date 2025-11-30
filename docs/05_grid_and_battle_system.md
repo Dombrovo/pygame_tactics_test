@@ -598,14 +598,22 @@ The battle system currently supports:
 - ✅ Synchronized selection (grid ↔ tiles ↔ Tab)
 - ✅ Smart UI behavior (action bar shows current turn unit only)
 
+**Implemented (Session 7)**:
+- ✅ **Movement system** with A* pathfinding (`combat/pathfinding.py`)
+- ✅ **Movement mode activation** (click Move button to show range)
+- ✅ **Green tile highlighting** for valid destinations
+- ✅ **Click-to-move** functionality
+- ✅ **Path validation** with movement range limits
+- ✅ **Flood-fill algorithm** for reachable tile calculation
+- ✅ **Movement action tracking** (Move + Attack OR Move + Move)
+- ✅ **Action bar callback system** (routes button clicks to actions)
+
 **Not yet implemented**:
-- ❌ Movement (clicking tile to move or using action bar)
-- ❌ Attacking (clicking enemy to attack or using action bar)
-- ❌ Line of sight calculations
+- ❌ Attacking (line of sight, hit chance, damage)
+- ❌ Line of sight calculations (Bresenham's algorithm)
 - ❌ Hit chance display
 - ❌ Damage resolution
 - ❌ Enemy AI
-- ❌ Action execution from action bar
 
 These features will be added in the next development session.
 
@@ -613,19 +621,21 @@ These features will be added in the next development session.
 
 ## File Locations
 
-- **Grid System**: `combat/grid.py` (370 lines)
+- **Grid System**: `combat/grid.py` (305 lines)
+- **Pathfinding**: `combat/pathfinding.py` (320 lines) **NEW Session 7**
 - **Unit Base**: `entities/unit.py` (240 lines)
 - **Investigators**: `entities/investigator.py` (170 lines)
 - **Enemies**: `entities/enemy.py` (220 lines)
-- **Battle Screen**: `combat/battle_screen.py` (~850 lines with turn order system)
+- **Battle Screen**: `combat/battle_screen.py` (~1050 lines with movement system)
 - **Turn Order Tests**: `testing/test_turn_order.py` (Session 5)
+- **Movement Tests**: `testing/test_movement.py` (Session 7) **NEW**
 
 ---
 
 ## Next Steps
 
-See [Next Session: Combat Mechanics](../Claude.md#next-session-combat-mechanics) for:
-1. Pathfinding (A* algorithm for movement)
+See [CLAUDE.md](../CLAUDE.md) for:
+1. ✅ ~~Pathfinding (A* algorithm for movement)~~ **COMPLETED Session 7**
 2. Line of sight (Bresenham's line algorithm)
 3. Combat resolution (hit chance, damage)
 4. Attack actions (ranged and melee)
@@ -641,7 +651,10 @@ The battle system provides:
 - **Two enemy types** with different behaviors
 - **Turn order system** (Session 5: individual unit turns, random order)
 - **Dual highlight system** (Session 5: green for current turn, yellow for viewing)
+- **Movement system** (Session 7: A* pathfinding, green tile highlights, click-to-move)
+- **Movement mode activation** (Session 7: click Move button to show range)
+- **Action bar callbacks** (Session 7: routes action clicks to battle screen)
 - **Visual feedback** (health bars, highlights, unit info, investigator tiles, action bar)
 - **End Turn button** (Session 5: advance through turn order)
 
-This foundation enables the next phase: adding movement, attacks, and AI to make the battle fully playable!
+The next phase: adding attacks, line of sight, and AI to make the battle fully playable!

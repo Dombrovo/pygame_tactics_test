@@ -676,10 +676,11 @@ The ActionBar manages a **row of 10 action slots** for the battle screen:
 
 ```python
 action_bar = ActionBar(
-    x=565,           # Left edge (centered on 1920px screen)
-    y=920,           # Top edge (below grid)
-    button_size=70,  # Size of each button
-    spacing=10       # Gap between buttons
+    x=565,                    # Left edge (centered on 1920px screen)
+    y=920,                    # Top edge (below grid)
+    button_size=70,           # Size of each button
+    spacing=10,               # Gap between buttons
+    on_action_click=callback  # Callback function(slot_index) when action clicked
 )
 ```
 
@@ -700,9 +701,10 @@ Centered X = (SCREEN_WIDTH - total_width) / 2
 
 ```python
 class ActionBar:
-    def __init__(self, x, y, button_size, spacing):
+    def __init__(self, x, y, button_size, spacing, on_action_click=None):
         self.action_buttons = []  # List of 10 ActionButtons
         self.current_investigator = None
+        self.on_action_click_callback = on_action_click  # External callback
 
         # Create 10 slots with hotkeys 1-9, 0
         for i in range(10):
@@ -715,6 +717,14 @@ class ActionBar:
                 on_click=lambda idx=i: self._on_action_click(idx)
             )
             self.action_buttons.append(button)
+
+    def _on_action_click(self, slot_index):
+        """Called when any action button is clicked."""
+        print(f"Action slot {slot_index} clicked")
+
+        # Call external callback if provided
+        if self.on_action_click_callback:
+            self.on_action_click_callback(slot_index)
 ```
 
 ### Update Pattern
@@ -770,7 +780,7 @@ class BattleScreen:
     def __init__(self, screen):
         # ... other initialization ...
 
-        # Create action bar
+        # Create action bar with callback
         action_bar_width = 10 * 70 + 9 * 10  # 790px
         action_bar_x = (config.SCREEN_WIDTH - action_bar_width) // 2
         action_bar_y = self.grid_offset_y + self.grid_pixel_size + 20
@@ -779,8 +789,23 @@ class BattleScreen:
             x=action_bar_x,
             y=action_bar_y,
             button_size=70,
-            spacing=10
+            spacing=10,
+            on_action_click=self._on_action_button_click  # Callback
         )
+
+    def _on_action_button_click(self, slot_index):
+        """Handle action button clicks."""
+        # Slot 0 = Move action
+        if slot_index == 0:
+            self.activate_movement_mode()  # Show green tile highlights
+
+        # Slot 1 = Attack action
+        elif slot_index == 1:
+            self.activate_attack_mode()  # Show red tile highlights
+
+        # Slots 2-9 = Future abilities
+        else:
+            print(f"Action {slot_index} not yet implemented")
 
     def _on_investigator_tile_click(self, investigator):
         self.selected_unit = investigator

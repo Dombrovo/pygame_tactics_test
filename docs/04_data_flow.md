@@ -562,6 +562,154 @@ def draw(self):
 
 ---
 
+## Battle Screen - Movement Activation Flow
+
+The battle screen uses a **movement mode state machine** to control when green tile highlights appear.
+
+### Movement Mode State Machine
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    MOVEMENT MODE STATES                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  State: INACTIVE (default)                                 │
+│  ├─ movement_mode_active = False                           │
+│  ├─ show_movement_range = False                            │
+│  └─ No green tiles visible                                 │
+│                        │                                    │
+│                        │ User clicks Move button (slot 0)  │
+│                        │ or presses hotkey '1'             │
+│                        ▼                                    │
+│  State: ACTIVE                                              │
+│  ├─ movement_mode_active = True                            │
+│  ├─ show_movement_range = True                             │
+│  ├─ reachable_tiles calculated (flood-fill)                │
+│  └─ Green highlights drawn on grid                         │
+│                        │                                    │
+│         ┌──────────────┼──────────────┬─────────────┐      │
+│         │              │              │             │      │
+│    Unit moves   Turn ends   Unit selected   Attack │      │
+│         │              │              │             │      │
+│         └──────────────┴──────────────┴─────────────┘      │
+│                        │                                    │
+│                        ▼                                    │
+│  State: INACTIVE (reset)                                    │
+│  └─ deactivate_movement_mode() called                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### User Clicks Move Button - Complete Flow
+
+```
+Frame 1: User clicks Move button (slot 0)
+┌──────────────────────────────────────────────────────────┐
+│ 1. ActionButton.handle_event(MOUSEBUTTONDOWN)           │
+│    ├─ is_hovered? YES                                    │
+│    ├─ is_pressed = True                                  │
+│    └─ return False (wait for BUTTONUP)                   │
+└──────────────────────────────────────────────────────────┘
+
+Frame 2: User releases mouse
+┌──────────────────────────────────────────────────────────┐
+│ 2. ActionButton.handle_event(MOUSEBUTTONUP)             │
+│    ├─ is_hovered? YES                                    │
+│    ├─ is_pressed? YES                                    │
+│    ├─ CLICK DETECTED!                                    │
+│    ├─ self.on_click()  [lambda: action_bar._on_action_click(0)]
+│    └─ return True                                        │
+│                                                          │
+│ 3. ActionBar._on_action_click(slot_index=0)             │
+│    ├─ print("Action slot 0 clicked")                    │
+│    └─ self.on_action_click_callback(0)                  │
+│          [BattleScreen._on_action_button_click]         │
+│                                                          │
+│ 4. BattleScreen._on_action_button_click(slot_index=0)   │
+│    ├─ if slot_index == 0:  [Move action]                │
+│    └─ self.activate_movement_mode()                     │
+│                                                          │
+│ 5. BattleScreen.activate_movement_mode()                │
+│    ├─ Check: current_turn_unit is player? YES           │
+│    ├─ Check: unit can move? YES                         │
+│    ├─ Calculate reachable tiles (flood-fill)            │
+│    │    └─ get_reachable_tiles(grid, pos, range)        │
+│    │         └─ Returns set of (x, y) coordinates       │
+│    ├─ self.reachable_tiles = {(0,3), (1,2), ...}        │
+│    ├─ self.movement_mode_active = True                  │
+│    ├─ self.show_movement_range = True                   │
+│    └─ print("Movement mode activated - 48 tiles...")    │
+└──────────────────────────────────────────────────────────┘
+
+Frame 3+: Green tiles now visible
+┌──────────────────────────────────────────────────────────┐
+│ 6. BattleScreen.draw()                                   │
+│    └─ self._draw_grid()                                  │
+│         ├─ for each tile in grid:                        │
+│         │    ├─ is_reachable = (x,y) in self.reachable_tiles
+│         │    ├─ if is_reachable:                         │
+│         │    │    ├─ color = (40, 60, 40)  [green tint]  │
+│         │    │    └─ pygame.draw.rect(..., 2)  [border]  │
+│         │    └─ else:                                    │
+│         │         └─ color = normal                      │
+│         └─ User sees green highlighted tiles!            │
+└──────────────────────────────────────────────────────────┘
+```
+
+### User Clicks Green Tile - Movement Execution
+
+```
+User clicks on green tile (3, 5)
+┌──────────────────────────────────────────────────────────┐
+│ 1. BattleScreen._handle_left_click(mouse_pos)            │
+│    ├─ grid_x, grid_y = _pixel_to_grid(mouse_pos)        │
+│    │    └─ Returns (3, 5)                                │
+│    ├─ tile = grid.get_tile(3, 5)                        │
+│    ├─ tile.is_occupied()? NO                            │
+│    └─ self._try_move_to_tile(3, 5)                      │
+│                                                          │
+│ 2. BattleScreen._try_move_to_tile(target_x=3, target_y=5)
+│    ├─ Check: (3,5) in reachable_tiles? YES              │
+│    ├─ current_pos = current_turn_unit.position  # (0,2) │
+│    ├─ path = find_path(grid, 0, 2, 3, 5, max_dist=4)   │
+│    │    └─ A* algorithm                                 │
+│    │    └─ Returns [(0,2), (1,3), (2,4), (3,5)]        │
+│    ├─ grid.move_unit(0, 2, 3, 5)                        │
+│    │    ├─ from_tile.occupied_by = None                 │
+│    │    ├─ to_tile.occupied_by = unit                   │
+│    │    └─ unit.position = (3, 5)                       │
+│    ├─ current_turn_unit.has_moved = True                │
+│    ├─ print("Unit moved from (0,2) to (3,5)")           │
+│    ├─ self._update_movement_range()  [recalculate]      │
+│    └─ self.deactivate_movement_mode()                   │
+│                                                          │
+│ 3. BattleScreen.deactivate_movement_mode()              │
+│    ├─ self.movement_mode_active = False                 │
+│    ├─ self.show_movement_range = False                  │
+│    └─ Green highlights disappear next frame             │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Key Differences from Title Screen
+
+**Title Screen:**
+- Click button → Immediate action (change screen)
+- No state machine
+- One-way flow
+
+**Battle Screen Movement:**
+- Click button → Enter mode (show options)
+- State machine controls visibility
+- Two-step interaction (activate → execute)
+- Prevents accidental moves
+
+**Benefits:**
+- Explicit user intent required
+- Visual feedback before commitment
+- Matches tactical game conventions (X-COM, Fire Emblem)
+- Extensible pattern for Attack, Abilities, etc.
+
+---
+
 ## Summary
 
 **Key Data Paths:**

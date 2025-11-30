@@ -280,21 +280,32 @@ print(f"Path: (0,0) -> (3,3)")
   - Excludes occupied tiles
   - Used for highlighting valid destinations
 - ✅ Battle screen integration
+  - **Movement mode activation** - Click Move button to show range
   - Green tile highlighting for valid movement destinations
-  - Shows movement range when player unit selected on their turn
   - Click-to-move functionality (click green tile to move there)
   - Path length validation before movement
   - Movement action tracking (`has_moved` flag)
   - Auto-updates range after movement
+- ✅ Movement mode state machine
+  - `movement_mode_active` flag controls highlight visibility
+  - `activate_movement_mode()` - Shows green tiles (called by Move button)
+  - `deactivate_movement_mode()` - Hides green tiles
+  - Auto-deactivates on: movement completion, turn end, unit selection
+  - Prevents accidental moves (requires explicit Move button click)
+- ✅ Action bar integration
+  - Move button (slot 0, hotkey 1) activates movement mode
+  - Action bar callback system (`on_action_click`)
+  - `_on_action_button_click()` handler routes actions
+  - Ready for Attack and future abilities
 - ✅ Action economy
   - Move + Attack OR Move + Move per turn
   - Movement disabled after attacking
   - Second move disabled after first attack
   - Range recalculates after each move
 - ✅ Visual feedback
-  - Green tint on reachable tiles
+  - Green tint on reachable tiles (only when mode active)
   - Green border (2px) around reachable tiles
-  - Range cleared when enemy turn or unit can't move
+  - No highlights until Move button clicked
   - Console feedback (path length, tiles reachable)
 - ✅ Testing
   - Comprehensive test suite (`testing/test_movement.py`)
@@ -327,7 +338,8 @@ pygame_tactics_test/
 │
 ├── combat/                    # Combat System
 │   ├── grid.py                # Grid, Tile classes, cover system
-│   └── battle_screen.py       # Battle UI, rendering, turn system
+│   ├── pathfinding.py         # A* pathfinding, movement range calculation
+│   └── battle_screen.py       # Battle UI, rendering, turn system, movement mode
 │
 ├── entities/                  # Entity System
 │   ├── unit.py                # Base Unit (with stat modifiers)

@@ -82,6 +82,7 @@ class BattleScreen:
         # Movement state
         self.reachable_tiles: Set[Tuple[int, int]] = set()  # Valid movement destinations for current turn unit
         self.show_movement_range = False  # Whether to show movement highlights
+        self.movement_mode_active = False  # Whether Move action is currently selected
 
         # Calculate grid rendering offset (center on screen)
         self.grid_pixel_size = config.GRID_SIZE * config.TILE_SIZE
@@ -207,7 +208,8 @@ class BattleScreen:
             x=action_bar_x,
             y=action_bar_y,
             button_size=70,
-            spacing=10
+            spacing=10,
+            on_action_click=self._on_action_button_click
         )
 
         # ====================================================================
@@ -444,8 +446,8 @@ class BattleScreen:
             # Update action bar (only populates if player unit)
             self._update_action_bar()
 
-            # Update movement range if selecting current turn unit
-            self._update_movement_range()
+            # Clear movement mode when selecting a unit (requires re-activating Move action)
+            self.deactivate_movement_mode()
 
             # Print team indicator for clarity
             team_indicator = "Player" if unit.team == "player" else "Enemy"
@@ -453,9 +455,9 @@ class BattleScreen:
         else:
             # Clicked on empty tile - check if it's a movement command
             if self._try_move_to_tile(grid_x, grid_y):
-                # Movement successful
-                # Update movement range (may have changed after move)
+                # Movement successful - update range and deactivate mode
                 self._update_movement_range()
+                self.deactivate_movement_mode()
 
     def _try_move_to_tile(self, target_x: int, target_y: int) -> bool:
         """
@@ -521,35 +523,25 @@ class BattleScreen:
 
     def _update_movement_range(self):
         """
-        Update the set of reachable tiles for the current turn unit.
+        Calculate the set of reachable tiles for the current turn unit.
+
+        Does NOT automatically show highlights - use activate_movement_mode() for that.
 
         Called when:
         - Turn advances to new unit
         - Current turn unit moves (range may change)
-        - Unit selection changes (to show/hide range)
         """
         # Clear existing range
         self.reachable_tiles.clear()
-        self.show_movement_range = False
 
-        # Only show movement range if:
-        # 1. It's a player unit's turn
-        # 2. Unit can still move
-        # 3. Unit is the selected unit (for clarity)
-
+        # Only calculate for player units that can move
         if not self.current_turn_unit:
             return
 
-        # Only show for player units
         if self.current_turn_unit.team != "player":
             return
 
-        # Only show if unit can move
         if not self.current_turn_unit.can_move():
-            return
-
-        # Only show if this unit is selected
-        if self.selected_unit != self.current_turn_unit:
             return
 
         # Get unit's current position
@@ -558,16 +550,69 @@ class BattleScreen:
 
         x, y = self.current_turn_unit.position
 
-        # Calculate reachable tiles
+        # Calculate reachable tiles (but don't show them yet)
         self.reachable_tiles = get_reachable_tiles(
             self.grid, x, y,
             self.current_turn_unit.movement_range
         )
 
-        # Show movement range highlights
+    def activate_movement_mode(self):
+        """
+        Activate movement mode - shows green tile highlights for valid moves.
+
+        Called when player clicks the Move action button.
+        """
+        # Can only activate if current turn unit can move
+        if not self.current_turn_unit:
+            return
+
+        if self.current_turn_unit.team != "player":
+            return
+
+        if not self.current_turn_unit.can_move():
+            print(f"{self.current_turn_unit.name} cannot move this turn")
+            return
+
+        # Ensure movement range is calculated
+        if not self.reachable_tiles:
+            self._update_movement_range()
+
+        # Activate movement mode
+        self.movement_mode_active = True
         self.show_movement_range = True
 
-        print(f"Movement range: {len(self.reachable_tiles)} tiles reachable")
+        print(f"Movement mode activated - {len(self.reachable_tiles)} tiles reachable")
+
+    def deactivate_movement_mode(self):
+        """
+        Deactivate movement mode - hides green tile highlights.
+
+        Called when:
+        - Movement is completed
+        - Turn ends
+        - Player cancels movement
+        """
+        self.movement_mode_active = False
+        self.show_movement_range = False
+
+    def _on_action_button_click(self, slot_index: int):
+        """
+        Handle action button clicks from the action bar.
+
+        Args:
+            slot_index: Which action slot was clicked (0-9)
+        """
+        # Slot 0 = Move action
+        if slot_index == 0:
+            self.activate_movement_mode()
+
+        # Slot 1 = Attack action
+        elif slot_index == 1:
+            print("Attack action clicked (not yet implemented)")
+
+        # Slots 2-9 = Future abilities
+        else:
+            print(f"Action slot {slot_index} clicked (not yet implemented)")
 
     def _on_investigator_tile_click(self, investigator: Investigator):
         """
@@ -799,6 +844,7 @@ class BattleScreen:
         self._update_tile_selection()
         self._update_action_bar()
         self._update_movement_range()  # Calculate movement range for new turn
+        self.deactivate_movement_mode()  # Clear any active movement mode from previous turn
 
         # Update turn order tracker with new current turn index
         self.turn_order_tracker.update_turn_order(self.turn_order, self.current_turn_index)

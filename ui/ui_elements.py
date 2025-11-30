@@ -1350,7 +1350,7 @@ class ActionBar:
     showing available actions and their states.
     """
 
-    def __init__(self, x: int, y: int, button_size: int = 70, spacing: int = 10):
+    def __init__(self, x: int, y: int, button_size: int = 70, spacing: int = 10, on_action_click=None):
         """
         Initialize the action bar.
 
@@ -1358,11 +1358,13 @@ class ActionBar:
             x, y: Top-left position of the action bar
             button_size: Size of each action button (square)
             spacing: Space between buttons
+            on_action_click: Callback function(slot_index) when action is clicked
         """
         self.x = x
         self.y = y
         self.button_size = button_size
         self.spacing = spacing
+        self.on_action_click_callback = on_action_click
 
         # Create 10 action button slots
         self.action_buttons: List[ActionButton] = []
@@ -1433,8 +1435,10 @@ class ActionBar:
             slot_index: Index of the clicked button (0-9)
         """
         print(f"Action slot {slot_index} clicked")
-        # TODO: Execute the corresponding action
-        # This will trigger movement/attack/ability logic
+
+        # Call the callback if one was provided
+        if self.on_action_click_callback:
+            self.on_action_click_callback(slot_index)
 
     def update(self, mouse_pos: Tuple[int, int]) -> None:
         """Update hover states for all action buttons."""
