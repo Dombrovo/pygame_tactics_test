@@ -276,10 +276,31 @@ class Grid:
             return True
         return False
 
+    def setup_generated_terrain(self, terrain_data: List[Tuple[int, int, str]]):
+        """
+        Apply procedurally generated terrain to the grid.
+
+        This method takes terrain data from a terrain generator and applies
+        it to the grid by calling add_cover() for each piece.
+
+        Args:
+            terrain_data: List of (x, y, cover_type) tuples from a terrain generator
+
+        Example:
+            from combat.terrain_generator import generate_random_terrain
+            terrain = generate_random_terrain(grid_size=10)
+            grid.setup_generated_terrain(terrain)
+        """
+        for x, y, cover_type in terrain_data:
+            self.add_cover(x, y, cover_type)
+
     def setup_test_cover(self):
         """
         Add some test cover to the grid for initial testing.
         This creates a simple layout with scattered cover pieces.
+
+        DEPRECATED: Use setup_generated_terrain() with terrain_generator module instead.
+        This method is kept for backwards compatibility but will be removed in Phase 2.
         """
         # Add some full cover in the center
         self.add_cover(4, 4, "full_cover")

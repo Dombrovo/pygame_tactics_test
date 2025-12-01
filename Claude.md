@@ -348,6 +348,38 @@ print(f"Path: (0,0) -> (3,3)")
   - Verifies Move-Move, Move-Attack, Attack-Attack work correctly
   - **All tests passing** (ASCII output for Windows compatibility)
 
+#### 19. Procedural Terrain Generation System (Session 8)
+- ✅ **Modular Generator Framework** (`combat/terrain_generator.py`)
+  - Base `TerrainGenerator` class for extensibility
+  - 6 specialized generators with unique tactical characteristics
+  - Data-driven design (returns terrain data, doesn't modify grid directly)
+  - Automatic spawn zone protection (player: x < 3, enemy: x > 6)
+- ✅ **Six Terrain Generators**
+  - **SymmetricGenerator**: Mirror-symmetric maps for balanced, competitive combat
+  - **ScatteredGenerator**: Random cover placement with configurable density (15%) and full/half ratio (40/60)
+  - **UrbanRuinsGenerator**: City ruins with vertical walls (70% probability) and debris piles (50%)
+  - **RitualSiteGenerator**: Circular pattern with central 2×2 altar for dramatic eldritch battles
+  - **OpenFieldGenerator**: Minimal cover (~4 pieces) favoring ranged combat and mobility
+  - **ChokepointGenerator**: Vertical walls with 2-tile gaps, defensive positioning
+- ✅ Grid integration (`combat/grid.py`)
+  - `setup_generated_terrain(terrain_data)` - Applies procedural terrain to grid
+  - `setup_test_cover()` deprecated but kept for backwards compatibility
+- ✅ Battle screen integration (`combat/battle_screen.py`)
+  - Replaced hardcoded `setup_test_cover()` with `generate_random_terrain()`
+  - Each battle uses randomly selected generator for variety
+  - Console output shows which generator was used
+- ✅ Testing
+  - Comprehensive test suite (`testing/test_terrain_generation.py`)
+  - ASCII visualization of all generator layouts
+  - Validates spawn zone clearance (no cover blocks unit placement)
+  - Validates coordinate bounds and cover type correctness
+  - **All tests passing** with no spawn zone violations
+- ✅ Impact
+  - **Replayability**: Every battle has different terrain layout
+  - **Tactical depth**: Different generators require different strategies
+  - **Thematic atmosphere**: Generators match mission types (urban ruins, ritual sites, etc.)
+  - **Future-ready**: Easy to add new generators or mission-specific terrain
+
 ### 🚧 In Progress
 
 **Next Task**: Combat Resolution (Attacks, Hit Chance, Line of Sight)
@@ -373,6 +405,7 @@ pygame_tactics_test/
 ├── combat/                    # Combat System
 │   ├── grid.py                # Grid, Tile classes, cover system
 │   ├── pathfinding.py         # A* pathfinding, movement range calculation
+│   ├── terrain_generator.py   # Procedural terrain generation (6 generators)
 │   └── battle_screen.py       # Battle UI, rendering, turn system, movement mode
 │
 ├── entities/                  # Entity System
@@ -390,7 +423,8 @@ pygame_tactics_test/
 │   ├── test_image_assignment.py
 │   ├── test_turn_order.py
 │   ├── test_movement.py
-│   └── test_action_points.py
+│   ├── test_action_points.py
+│   └── test_terrain_generation.py
 │
 └── docs/                      # Documentation
     ├── doc_index.md

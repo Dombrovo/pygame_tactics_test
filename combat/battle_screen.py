@@ -11,6 +11,7 @@ from typing import Optional, List, Tuple, Set
 import config
 from combat.grid import Grid
 from combat.pathfinding import find_path, get_reachable_tiles
+from combat.terrain_generator import generate_random_terrain
 from entities.unit import Unit
 from entities.investigator import Investigator, create_test_squad
 from entities.enemy import Enemy, create_test_enemies
@@ -47,9 +48,13 @@ class BattleScreen:
         # Navigation: which screen to show next (title, victory, defeat)
         self.next_screen = None
 
-        # Create grid
+        # Create grid with procedurally generated terrain
         self.grid = Grid(config.GRID_SIZE)
-        self.grid.setup_test_cover()  # Add some test cover
+
+        # Generate random terrain using one of the available generators
+        # (symmetric, scattered, urban_ruins, ritual_site, open_field, chokepoint)
+        terrain_data = generate_random_terrain(grid_size=config.GRID_SIZE)
+        self.grid.setup_generated_terrain(terrain_data)
 
         # Create units
         self.player_units: List[Investigator] = create_test_squad()
