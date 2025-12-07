@@ -6,6 +6,7 @@ They have additional attributes for progression and traits (Phase 2+).
 """
 
 from entities.unit import Unit
+from entities import equipment  # Import equipment module for weapons
 from typing import List, Literal, Dict, Any, Optional
 import random
 import json
@@ -397,8 +398,17 @@ def create_test_squad() -> List[Investigator]:
         },
     ]
 
+    # Define weapons for each role
+    # Each template gets a weapon that matches their playstyle
+    role_weapons = [
+        equipment.REVOLVER,      # Balanced: Standard sidearm
+        equipment.RIFLE,         # Sniper: Long-range precision (+10% accuracy)
+        equipment.SHOTGUN,       # Tank: High damage close-range
+        equipment.REVOLVER,      # Scout: Reliable standard weapon
+    ]
+
     investigators = []
-    for template in stat_templates:
+    for i, template in enumerate(stat_templates):
         # Generate random name and gender from name database
         name, gender = generate_random_name()
 
@@ -414,6 +424,10 @@ def create_test_squad() -> List[Investigator]:
             image_path=image_path,
             **template
         )
+
+        # Equip weapon based on role
+        inv.equip_weapon(role_weapons[i])
+
         investigators.append(inv)
 
     return investigators

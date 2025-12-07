@@ -80,13 +80,22 @@ For detailed understanding of specific systems:
    - Valid action combinations (Move-Move, Move-Attack, etc.)
    - Usage examples and testing
 
-8. **[Terrain Tooltip System](08_terrain_tooltip_system.md)** ⭐ NEW
+8. **[Terrain Tooltip System](08_terrain_tooltip_system.md)**
    - Tooltip UI component architecture
    - Tile tooltip data structure
    - Battle screen integration
    - Screen edge avoidance algorithm
    - Testing and bug fix documentation
    - User experience design
+
+9. **[Equipment & Inventory System](09_equipment_system.md)** ⭐ NEW
+   - Equipment framework (Equipment, Weapon, Armor, Accessory classes)
+   - Weapon library (12 pre-defined weapons)
+   - Unit integration (equipped_weapon, weapon properties)
+   - Property-based stat delegation
+   - Weapon modifiers and accuracy calculations
+   - Automatic weapon assignment
+   - Testing and usage examples
 
 ---
 
@@ -105,11 +114,14 @@ For detailed understanding of specific systems:
 | Understand the stat system | [06_stat_system.md](06_stat_system.md) |
 | Understand action points | [07_action_points_system.md](07_action_points_system.md) |
 | Understand tooltips | [08_terrain_tooltip_system.md](08_terrain_tooltip_system.md) |
+| Understand equipment system | [09_equipment_system.md](09_equipment_system.md) |
 | See complete click flow | [04_data_flow.md](04_data_flow.md#mouse-click-flow---detailed) |
 | Add a new menu option | [02_architecture_overview.md](02_architecture_overview.md#adding-a-new-screen) |
 | Add a new enemy type | [05_grid_and_battle_system.md](05_grid_and_battle_system.md#enemy-classes) |
+| Add a new weapon | [09_equipment_system.md](09_equipment_system.md#adding-new-weapons) |
 | Apply stat modifiers | [06_stat_system.md](06_stat_system.md#usage-examples) |
 | Consume action points | [07_action_points_system.md](07_action_points_system.md#usage-examples) |
+| Equip weapons | [09_equipment_system.md](09_equipment_system.md#usage-examples) |
 | Create tooltips | [08_terrain_tooltip_system.md](08_terrain_tooltip_system.md#creating-tooltips) |
 
 ### Code Files (with extensive comments)
@@ -123,9 +135,10 @@ All code files have been extensively commented:
 - **[ui/settings_screen.py](../ui/settings_screen.py)** - Settings menu
 - **[combat/grid.py](../combat/grid.py)** - Grid and Tile system with cover mechanics
 - **[combat/battle_screen.py](../combat/battle_screen.py)** - Battle UI, emoji font system, and rendering
-- **[entities/unit.py](../entities/unit.py)** - Base unit class with stat system
-- **[entities/investigator.py](../entities/investigator.py)** - Player units with random names
-- **[entities/enemy.py](../entities/enemy.py)** - Enemy types (Cultist, Hound)
+- **[entities/unit.py](../entities/unit.py)** - Base unit class with stat system + equipment
+- **[entities/investigator.py](../entities/investigator.py)** - Player units with random names + weapons
+- **[entities/enemy.py](../entities/enemy.py)** - Enemy types (Cultist, Hound) + weapons
+- **[entities/equipment.py](../entities/equipment.py)** - Equipment system (weapons, armor, accessories)
 - **[assets/json/names_data.json](../assets/json/names_data.json)** - Name database (male/female/nicknames)
 
 ---
@@ -338,8 +351,8 @@ These docs should be updated when:
 - New components are created
 - Performance characteristics change
 
-Last updated: 2025-12-08 (Session 8: Terrain Tooltip System)
-Version: 0.1.0 (MVP Phase 1 - 97% Complete)
+Last updated: 2025-12-08 (Session 9: Equipment & Inventory System)
+Version: 0.1.0 (MVP Phase 1 - 98% Complete)
 
 ---
 

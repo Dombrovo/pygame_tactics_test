@@ -30,11 +30,13 @@ This document outlines the long-term vision, planned features, and implementatio
 ### Remaining Tasks for MVP Completion
 
 **Combat Mechanics** (Next Session):
-- Movement system with A* pathfinding
 - Line of sight calculation (Bresenham's algorithm)
 - Combat resolution (hit chance, damage)
 - Attack actions (ranged, melee)
 - Basic enemy AI (move toward player, attack if in range)
+
+**Completed in Session 9**:
+- ✅ Equipment & Inventory System (weapons, damage, range, modifiers)
 
 ### Tactical Combat Features
 - 10x10 grid battlefield ✅
@@ -49,11 +51,12 @@ This document outlines the long-term vision, planned features, and implementatio
 
 ### Character Systems
 - **Dual resource bars**: Health and Sanity (0 in either = incapacitated) ✅
-- **Actions per turn**: Move + Attack OR Move twice ⏳
-- **Three attack types**:
-  - Move (up to movement range) ⏳
-  - Ranged Attack (3 tile range, requires line of sight) ⏳
-  - Melee Attack (adjacent tile only) ⏳
+- **Actions per turn**: 2 action points (Move-Move, Move-Attack, Attack-Attack) ✅
+- **Equipment system**: Weapons determine damage, range, attack type ✅
+- **Attack types** (weapon-based):
+  - Move (up to movement range) ✅
+  - Ranged Attack (weapon_range, requires line of sight) ⏳
+  - Melee Attack (weapon_range = 1) ⏳
 
 ### Win/Lose Conditions
 - **Win**: Eliminate all enemies ✅
@@ -422,24 +425,38 @@ Occult Studies
 
 ### Equipment/Loadout System
 
+**IMPLEMENTED IN PHASE 1 MVP** (Session 9):
+- ✅ Base Equipment class
+- ✅ Weapon class with damage, range, attack type, accuracy modifiers
+- ✅ 12 pre-defined weapons (9 investigator, 3 enemy)
+- ✅ Automatic weapon assignment for investigators and enemies
+- ✅ Property-based stat delegation
+
 ```python
 class Equipment:
     def __init__(self):
         self.name: str
         self.slot: str  # "weapon", "armor", "accessory"
-        self.modifiers: dict  # Stat bonuses
+        self.icon: str  # Display symbol
+
+class Weapon(Equipment):
+    damage: int
+    weapon_range: int
+    attack_type: str  # "melee" or "ranged"
+    accuracy_modifier: int
+    sanity_damage: int
 
 class Investigator:
     # ... existing attributes ...
-    equipped_weapon: Equipment | None
-    equipped_armor: Equipment | None
-    equipped_accessories: list[Equipment]  # Max 2
+    equipped_weapon: Weapon | None  # ✅ IMPLEMENTED
+    equipped_armor: Equipment | None  # Phase 2+
+    equipped_accessories: list[Equipment]  # Phase 2+
 ```
 
 **Equipment Examples**:
-- **Weapons**: Revolver, Shotgun, Rifle, Tommy Gun, Blessed Blade
-- **Armor**: Vest (+2 HP), Warded Coat (+1 will)
-- **Accessories**: First Aid Kit, Elder Sign (1-time sanity protection), Night Vision Goggles
+- **Weapons** ✅: Revolver, Shotgun, Rifle, Tommy Gun, Combat Knife, Fire Axe, Blessed Blade, Elder Sign Amulet
+- **Armor** (Phase 2+): Vest (+2 HP), Warded Coat (+1 will)
+- **Accessories** (Phase 2+): First Aid Kit, Elder Sign (1-time sanity protection), Night Vision Goggles
 
 ### Crafting System (Phase 3+)
 - Combine artifacts + resources to create unique items
@@ -577,22 +594,26 @@ class SaveGame:
 
 ## Implementation Phases Summary
 
-### Phase 1: MVP (~75% Complete)
+### Phase 1: MVP (~98% Complete)
 **Deliverable**: Playable tactical battle
 
 **Completed**:
 - ✅ Project foundation & UV setup
 - ✅ Configuration system
-- ✅ UI framework (Button, MenuButton, TextLabel, InvestigatorTile)
+- ✅ UI framework (Button, MenuButton, TextLabel, InvestigatorTile, ActionBar, TurnOrderTracker, Tooltip, ActionPointsDisplay)
 - ✅ Title screen with navigation
 - ✅ Grid system (10x10, cover, distance calculations)
 - ✅ Entity system (Unit, Investigator, Cultist, Hound)
 - ✅ Battle screen (rendering, selection, turn system)
 - ✅ Investigator tiles panel (tactical overview)
-- ✅ Comprehensive documentation
+- ✅ Movement system (A* pathfinding, flood-fill range)
+- ✅ Action points system (2 actions per turn)
+- ✅ Terrain generation (6 procedural generators)
+- ✅ Tooltip system (terrain tooltips)
+- ✅ Equipment system (weapons, damage, range, modifiers)
+- ✅ Comprehensive documentation (8 docs)
 
 **Remaining**:
-- Movement system with pathfinding
 - Line of sight calculation
 - Combat resolution (hit chance, damage)
 - Attack actions (ranged, melee)
@@ -618,7 +639,7 @@ class SaveGame:
 - Class system and specializations
 - Expanded ability system (5+ abilities per class)
 - 5+ enemy types
-- Equipment/loadout system
+- Equipment expansion (armor, accessories, more weapons)
 - Base building (3-4 facilities)
 - Research tree (10+ projects)
 - Mission variety (3+ mission types)

@@ -5,7 +5,11 @@ This module defines the base Unit class that both player investigators
 and enemy units inherit from.
 """
 
-from typing import Tuple, Optional
+from typing import Tuple, Optional, TYPE_CHECKING
+
+# Avoid circular import - only import for type checking
+if TYPE_CHECKING:
+    from entities.equipment import Weapon
 
 
 class Unit:
@@ -84,6 +88,11 @@ class Unit:
         self.max_action_points = 2
         self.current_action_points = 2
 
+        # --- EQUIPMENT SYSTEM (Phase 1 - Weapons only) ---
+        # Units can equip weapons that determine their attack capabilities
+        # Phase 2+ will add armor and accessories
+        self.equipped_weapon: Optional['Weapon'] = None  # Type hint with forward reference
+
     # --- CALCULATED STATS (Properties: base + modifiers) ---
     # These are Python @property decorators, which make methods act like attributes
     # When you access unit.max_health, it actually calls the max_health() method
@@ -150,6 +159,73 @@ class Unit:
         Even with leg injuries, a unit can still crawl/limp 1 tile.
         """
         return max(1, self.base_movement_range + self.movement_modifier)
+
+    # --- WEAPON-BASED STATS (Properties: delegate to equipped weapon) ---
+    # These properties get values from the equipped weapon
+    # If no weapon equipped, returns default unarmed values
+
+    @property
+    def weapon_damage(self) -> int:
+        """
+        Damage dealt by attacks.
+
+        Returns equipped weapon's damage, or 2 if unarmed (fists/improvised).
+        """
+        if self.equipped_weapon:
+            return self.equipped_weapon.damage
+        return 2  # Unarmed damage (punching, kicking)
+
+    @property
+    def weapon_range(self) -> int:
+        """
+        Attack range in tiles.
+
+        Returns equipped weapon's range, or 1 if unarmed (melee only).
+        """
+        if self.equipped_weapon:
+            return self.equipped_weapon.weapon_range
+        return 1  # Unarmed range (adjacent tiles only)
+
+    @property
+    def attack_type(self) -> str:
+        """
+        Attack type: "melee" or "ranged".
+
+        Returns equipped weapon's attack type, or "melee" if unarmed.
+        """
+        if self.equipped_weapon:
+            return self.equipped_weapon.attack_type
+        return "melee"  # Unarmed is always melee
+
+    @property
+    def weapon_sanity_damage(self) -> int:
+        """
+        Sanity damage dealt by attacks.
+
+        Returns equipped weapon's sanity damage, or 0 if unarmed.
+        Used by eldritch weapons and claws.
+        """
+        if self.equipped_weapon:
+            return self.equipped_weapon.sanity_damage
+        return 0  # Unarmed doesn't cause sanity damage
+
+    @property
+    def accuracy(self) -> int:
+        """
+        Effective accuracy = base + modifiers + weapon modifier.
+
+        Clamped between 5-95%:
+        - Minimum 5%: Even terrible shooters have some chance to hit
+        - Maximum 95%: Even expert marksmen can miss (no guaranteed hits)
+
+        Weapon modifier is added here (e.g., Rifle +10%, Shotgun -10%).
+        """
+        weapon_modifier = 0
+        if self.equipped_weapon:
+            weapon_modifier = self.equipped_weapon.accuracy_modifier
+
+        total_accuracy = self.base_accuracy + self.accuracy_modifier + weapon_modifier
+        return max(5, min(95, total_accuracy))
 
     def take_damage(self, amount: int) -> int:
         """
@@ -359,6 +435,52 @@ class Unit:
             True if current_action_points > 0
         """
         return self.current_action_points > 0
+
+    # --- EQUIPMENT MANAGEMENT ---
+
+    def equip_weapon(self, weapon: 'Weapon') -> None:
+        """
+        Equip a weapon.
+
+        This replaces any currently equipped weapon.
+        Weapon modifiers (accuracy bonus/penalty) are automatically
+        applied through the accuracy property.
+
+        Args:
+            weapon: Weapon object to equip
+
+        Example:
+            >>> from entities.equipment import RIFLE
+            >>> investigator.equip_weapon(RIFLE)
+            >>> print(investigator.weapon_damage)  # 6
+            >>> print(investigator.weapon_range)   # 5
+            >>> print(investigator.accuracy)       # 85 (75 base + 10 rifle bonus)
+        """
+        self.equipped_weapon = weapon
+
+    def unequip_weapon(self) -> Optional['Weapon']:
+        """
+        Remove currently equipped weapon.
+
+        Returns:
+            The unequipped weapon, or None if no weapon was equipped
+
+        Example:
+            >>> old_weapon = investigator.unequip_weapon()
+            >>> print(investigator.weapon_damage)  # 2 (unarmed)
+        """
+        old_weapon = self.equipped_weapon
+        self.equipped_weapon = None
+        return old_weapon
+
+    def has_weapon(self) -> bool:
+        """
+        Check if unit has a weapon equipped.
+
+        Returns:
+            True if weapon equipped, False if unarmed
+        """
+        return self.equipped_weapon is not None
 
     def get_info_text(self) -> str:
         """

@@ -62,8 +62,8 @@ print(f"Path: (0,0) -> (3,3)")
 
 ## Current Development State
 
-**Last Updated**: 2025-12-08 (Session 8)
-**Current Phase**: Phase 1 - MVP (~97% Complete - Movement, Action Points & Tooltips Complete, Attacks Next)
+**Last Updated**: 2025-12-08 (Session 9)
+**Current Phase**: Phase 1 - MVP (~98% Complete - Equipment System Complete, Line of Sight & Combat Next)
 
 ### ✅ Completed Components
 
@@ -138,6 +138,24 @@ print(f"Path: (0,0) -> (3,3)")
 - ✅ Enemy base class
 - ✅ Cultist class (🔫 ranged attacker)
 - ✅ Hound of Tindalos class (🐺 fast melee horror)
+
+#### 7.5. Equipment & Inventory System (Session 9)
+- ✅ Base Equipment class (for all equippable items)
+- ✅ Weapon class with damage, range, attack type, accuracy modifiers
+- ✅ Weapon Library - 9 investigator weapons, 3 enemy weapons
+  - Investigator: Revolver, Rifle, Shotgun, Tommy Gun, Knife, Axe, Crowbar, Blessed Blade, Elder Sign
+  - Enemy: Cultist Pistol, Hound Claws, Tentacle Strike
+- ✅ Unit integration with weapon properties
+  - `equipped_weapon` attribute
+  - `weapon_damage`, `weapon_range`, `attack_type` properties
+  - `weapon_sanity_damage` property
+  - `equip_weapon()`, `unequip_weapon()`, `has_weapon()` methods
+  - Weapon accuracy modifiers integrated into accuracy calculation
+- ✅ Automatic weapon assignment
+  - Investigators equip role-appropriate weapons (Balanced→Revolver, Sniper→Rifle, Tank→Shotgun)
+  - Enemies equip their signature weapons
+- ✅ Unarmed combat fallback (2 damage, range 1, melee)
+- ✅ Comprehensive test suite (`testing/test_equipment.py`) - All tests passing
 
 #### 8. Battle Screen
 - ✅ Grid rendering (10x10 with cover symbols)
@@ -448,9 +466,10 @@ pygame_tactics_test/
 │   └── battle_screen.py       # Battle UI, rendering, turn system, movement mode
 │
 ├── entities/                  # Entity System
-│   ├── unit.py                # Base Unit (with stat modifiers)
-│   ├── investigator.py        # Player units (random names + portraits)
-│   └── enemy.py               # Enemy units (Cultist, Hound)
+│   ├── unit.py                # Base Unit (with stat modifiers + equipment)
+│   ├── investigator.py        # Player units (random names + portraits + weapons)
+│   ├── enemy.py               # Enemy units (Cultist, Hound + weapons)
+│   └── equipment.py           # Equipment system (weapons, armor, accessories)
 │
 ├── assets/                    # Game assets
 │   ├── images/                # Character portraits, sprites
@@ -465,7 +484,8 @@ pygame_tactics_test/
 │   ├── test_action_points.py
 │   ├── test_terrain_generation.py
 │   ├── test_tooltip.py
-│   └── test_tooltip_integration.py
+│   ├── test_tooltip_integration.py
+│   └── test_equipment.py      # Equipment system tests
 │
 └── docs/                      # Documentation
     ├── doc_index.md
@@ -490,14 +510,16 @@ pygame_tactics_test/
 
 **Files to Update**:
 3. `combat/battle_screen.py` - Add attack action implementation
-4. `entities/unit.py` - Add damage dealing methods (if needed)
+4. Update unit info display to show weapon stats
 
 **Current Status**:
 - ✅ Movement system complete with A* pathfinding
 - ✅ Action points system fully implemented (2 actions per turn)
-- ⏳ Attack mechanics next (will consume 1 action point)
+- ✅ Equipment system complete (weapons, damage, range, modifiers)
+- ⏳ Line of Sight next (Bresenham's algorithm)
+- ⏳ Combat resolution next (hit chance, damage application)
 
-**Estimated Time**: 2-3 hours
+**Estimated Time**: 3-4 hours
 
 ---
 
@@ -895,6 +917,82 @@ Successfully implemented a comprehensive 2-action points system and completed th
 - Foundation ready for attack implementation
 - Prevents action overflow bugs with smart button disabling
 - Enhanced player agency (multiple action combinations per turn)
+
+---
+
+## Recent Development: Session 9
+
+**Completed**: 2025-12-08
+
+### Equipment & Inventory System Implementation
+
+Successfully implemented a comprehensive equipment system for weapons, armor, and accessories:
+
+**Key Features**:
+- **Modular equipment framework** - Base `Equipment` class, `Weapon`/`Armor`/`Accessory` subclasses
+- **12 pre-defined weapons** - 9 for investigators, 3 for enemies
+- **Property-based stat delegation** - Unit stats automatically pull from equipped weapon
+- **Weapon modifiers** - Accuracy bonuses/penalties (Rifle +10%, Shotgun -10%)
+- **Dual damage types** - Health damage + sanity damage (for eldritch weapons)
+- **Automatic weapon assignment** - Investigators and enemies auto-equip appropriate weapons
+- **Unarmed combat fallback** - Units without weapons default to 2 damage, range 1, melee
+
+**Equipment Module** (`entities/equipment.py` - 434 lines):
+- `Equipment` base class (name, description, slot, icon)
+- `Weapon` class (damage, range, attack_type, accuracy_modifier, sanity_damage)
+- `Armor` class (Phase 2+ placeholder)
+- `Accessory` class (Phase 2+ placeholder)
+- Weapon library with 12 pre-defined weapons
+- Helper functions (`get_weapon_by_name()`, `get_all_investigator_weapons()`)
+
+**Investigator Weapons**:
+- **Revolver** - 5 dmg, range 3, balanced (standard issue)
+- **Rifle** - 6 dmg, range 5, +10% accuracy (sniper weapon)
+- **Shotgun** - 8 dmg, range 2, -10% accuracy (tank weapon)
+- **Tommy Gun** - 4 dmg, range 3, -5% accuracy (spray weapon)
+- **Combat Knife** - 4 dmg, range 1, melee, +5% accuracy
+- **Fire Axe** - 7 dmg, range 1, melee, -5% accuracy (heavy)
+- **Crowbar** - 3 dmg, range 1, melee (improvised)
+- **Blessed Blade** - 5 dmg, range 1, melee, 3 sanity dmg (anti-eldritch)
+- **Elder Sign Amulet** - 3 dmg, range 4, ranged, 5 sanity dmg, -10% accuracy (cursed artifact)
+
+**Enemy Weapons**:
+- **Cultist Pistol** - 4 dmg, range 3, -5% accuracy (cheap handgun)
+- **Hound Claws** - 6 dmg, range 1, melee, +10% accuracy, 5 sanity dmg (terrifying)
+- **Tentacle Strike** - 5 dmg, range 2, melee reach, 4 sanity dmg
+
+**Unit Class Updates** (`entities/unit.py`):
+- Added `equipped_weapon: Optional[Weapon]` attribute
+- New weapon properties: `weapon_damage`, `weapon_range`, `attack_type`, `weapon_sanity_damage`
+- Updated `accuracy` property to include weapon accuracy modifiers
+- Added equipment methods: `equip_weapon()`, `unequip_weapon()`, `has_weapon()`
+
+**Investigator Updates** (`entities/investigator.py`):
+- `create_test_squad()` now auto-equips role-appropriate weapons:
+  - Balanced -> Revolver
+  - Sniper -> Rifle (+10% accuracy boost!)
+  - Tank -> Shotgun (high damage, close range)
+  - Scout -> Revolver
+
+**Enemy Updates** (`entities/enemy.py`):
+- Refactored `Enemy` base class to use equipment system
+- `Cultist` auto-equips Cultist Pistol
+- `HoundOfTindalos` auto-equips Eldritch Claws
+- Updated `get_info_text()` to use weapon properties
+
+**Testing** (`testing/test_equipment.py` - 293 lines):
+- 7 comprehensive test functions covering all equipment features
+- Tests weapon creation, equipping, stat delegation, modifiers
+- Tests investigator/enemy weapon assignment
+- Tests sanity damage weapons, weapon library functions
+- **All tests passing** with ASCII-only output
+
+**Impact**:
+- **Attack system ready** - Damage, range, and modifiers now available
+- **Extensible design** - Easy to add new weapons in future
+- **Phase 2 prepared** - Armor and accessories framework in place
+- **Tactical variety** - Different weapons encourage different playstyles
+- **Clean architecture** - Property delegation keeps code DRY
 
 ---
 

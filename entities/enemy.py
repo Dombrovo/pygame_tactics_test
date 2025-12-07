@@ -7,6 +7,7 @@ This module defines the two MVP enemy types:
 """
 
 from entities.unit import Unit
+from entities import equipment  # Import equipment module for weapons
 from typing import List
 
 
@@ -14,10 +15,11 @@ class Enemy(Unit):
     """
     Base enemy class.
 
-    Extends Unit with enemy-specific attributes:
-    - Weapon range
-    - Attack type (melee/ranged)
-    - Sanity damage
+    Extends Unit with enemy-specific behaviors.
+    Enemy weapons are handled through the equipment system (equipped_weapon).
+
+    Note: The old weapon_range, attack_type, sanity_damage parameters
+    have been replaced by the equipment system. Use equip_weapon() instead.
     """
 
     def __init__(
@@ -29,9 +31,10 @@ class Enemy(Unit):
         will: int,
         movement_range: int,
         symbol: str,
-        weapon_range: int,
-        attack_type: str,
-        sanity_damage: int = 0
+        # Legacy parameters kept for backward compatibility (not used)
+        weapon_range: int = None,
+        attack_type: str = None,
+        sanity_damage: int = None
     ):
         """
         Initialize an enemy unit.
@@ -44,9 +47,9 @@ class Enemy(Unit):
             will: Sanity defense
             movement_range: Tiles per turn
             symbol: Unicode symbol for display
-            weapon_range: Attack range in tiles
-            attack_type: "melee" or "ranged"
-            sanity_damage: Sanity damage dealt on hit (0 for physical attacks)
+            weapon_range: DEPRECATED - Use equip_weapon() instead
+            attack_type: DEPRECATED - Use equip_weapon() instead
+            sanity_damage: DEPRECATED - Use equip_weapon() instead
         """
         super().__init__(
             name=name,
@@ -59,9 +62,8 @@ class Enemy(Unit):
             symbol=symbol
         )
 
-        self.weapon_range = weapon_range
-        self.attack_type = attack_type
-        self.sanity_damage = sanity_damage
+        # Weapon stats now come from equipped_weapon
+        # Subclasses should call self.equip_weapon() to set their weapon
 
     def get_info_text(self) -> str:
         """
@@ -77,11 +79,11 @@ class Enemy(Unit):
             f"Attack: {self.attack_type}",
         ]
 
-        if self.sanity_damage > 0:
-            lines.append(f"⚠️  Sanity Dmg: {self.sanity_damage}")
+        if self.weapon_sanity_damage > 0:
+            lines.append(f"[!] Sanity Dmg: {self.weapon_sanity_damage}")
 
         if self.is_incapacitated:
-            lines.append("💀 DEFEATED")
+            lines.append("[X] DEFEATED")
 
         return "\n".join(lines)
 
@@ -117,6 +119,9 @@ class Cultist(Enemy):
             attack_type="ranged",
             sanity_damage=0       # Physical damage only
         )
+
+        # Equip weapon (uses equipment system)
+        self.equip_weapon(equipment.CULTIST_PISTOL)
 
     def __repr__(self) -> str:
         """String representation for debugging."""
@@ -156,6 +161,9 @@ class HoundOfTindalos(Enemy):
             attack_type="melee",
             sanity_damage=5       # Seeing it up close causes sanity loss
         )
+
+        # Equip weapon (uses equipment system)
+        self.equip_weapon(equipment.HOUND_CLAWS)
 
     def __repr__(self) -> str:
         """String representation for debugging."""
