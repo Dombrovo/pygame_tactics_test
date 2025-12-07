@@ -62,8 +62,8 @@ print(f"Path: (0,0) -> (3,3)")
 
 ## Current Development State
 
-**Last Updated**: 2025-11-30 (Session 7)
-**Current Phase**: Phase 1 - MVP (~95% Complete - Movement & Action Points Complete, Attacks Next)
+**Last Updated**: 2025-12-08 (Session 8)
+**Current Phase**: Phase 1 - MVP (~97% Complete - Movement, Action Points & Tooltips Complete, Attacks Next)
 
 ### ✅ Completed Components
 
@@ -99,6 +99,7 @@ print(f"Path: (0,0) -> (3,3)")
 - ✅ ActionBar class (10-slot ability/action bar)
 - ✅ TurnOrderTracker class (visual turn sequence display)
 - ✅ ActionPointsDisplay class (visual action points indicator)
+- ✅ Tooltip class (contextual information on hover)
 - ✅ Callback pattern implementation
 
 #### 4. Title Screen
@@ -380,6 +381,44 @@ print(f"Path: (0,0) -> (3,3)")
   - **Thematic atmosphere**: Generators match mission types (urban ruins, ritual sites, etc.)
   - **Future-ready**: Easy to add new generators or mission-specific terrain
 
+#### 20. Terrain Tooltip System (Session 8)
+- ✅ **Tooltip UI Component** (`ui/ui_elements.py`)
+  - `Tooltip` class (191 lines) for contextual information display
+  - Multi-line display: title (golden) + flavor text (dim) + mechanics (normal)
+  - Semi-transparent background with border (alpha=230)
+  - Automatic screen edge avoidance (adjusts position to stay on-screen)
+  - Bold title effect (double-render technique)
+  - Configurable padding, colors, and font sizes
+- ✅ **Tile Tooltip Data** (`combat/grid.py`)
+  - Tooltip fields added to `Tile` class: `tooltip_title`, `tooltip_flavor`, `tooltip_mechanics`
+  - **Full Cover**: "Solid terrain that provides complete protection" / "+40% chance for attacks to miss"
+  - **Half Cover**: "Low obstacles that provide partial protection" / "+20% chance for attacks to miss"
+  - **Empty tiles**: No tooltip (empty strings)
+  - `has_tooltip()` method checks if tile has displayable content
+  - **Critical fix**: `add_cover()` now updates tooltip data when adding terrain
+- ✅ **Battle Screen Integration** (`combat/battle_screen.py`)
+  - `terrain_tooltip` instance created in battle screen
+  - `hovered_tile` tracking for current mouse position
+  - `_update_terrain_tooltip()` method (35 lines) updates every frame
+  - Converts mouse position to grid coordinates via `_pixel_to_grid()`
+  - Shows tooltip when hovering over terrain with cover
+  - Hides tooltip when hovering over empty tiles or off-grid
+  - Drawn last (appears on top of all other UI elements)
+- ✅ **User Experience**
+  - Hover mouse over terrain → Tooltip appears near cursor
+  - Tooltip follows mouse with 15px offset
+  - Displays terrain type, description, and defense bonus
+  - Disappears when leaving terrain tile
+  - No lag or flicker (smooth 60 FPS)
+- ✅ **Testing**
+  - `testing/test_tooltip.py` - Component tests (basic functionality, edge avoidance, visual test)
+  - `testing/test_tooltip_integration.py` - Integration tests (tile data, add_cover() updates, terrain generation)
+  - **All tests passing** (verified tooltip data updates correctly)
+- ✅ **Bug Fix Documentation**
+  - `TOOLTIP_FIX_SUMMARY.md` - Complete debugging history and resolution
+  - Root cause: `add_cover()` wasn't updating tooltip fields
+  - Solution: Update tooltip data when terrain is added to tiles
+
 ### 🚧 In Progress
 
 **Next Task**: Combat Resolution (Attacks, Hit Chance, Line of Sight)
@@ -398,7 +437,7 @@ pygame_tactics_test/
 ├── CONTRIBUTING.md            # Developer guidelines
 │
 ├── ui/                        # UI Framework
-│   ├── ui_elements.py         # Button, MenuButton, TextLabel, InvestigatorTile, ActionBar, TurnOrderTracker
+│   ├── ui_elements.py         # Button, MenuButton, TextLabel, InvestigatorTile, ActionBar, TurnOrderTracker, Tooltip
 │   ├── title_screen.py        # Title screen
 │   └── settings_screen.py     # Settings menu
 │
@@ -424,7 +463,9 @@ pygame_tactics_test/
 │   ├── test_turn_order.py
 │   ├── test_movement.py
 │   ├── test_action_points.py
-│   └── test_terrain_generation.py
+│   ├── test_terrain_generation.py
+│   ├── test_tooltip.py
+│   └── test_tooltip_integration.py
 │
 └── docs/                      # Documentation
     ├── doc_index.md

@@ -15,7 +15,7 @@ from combat.terrain_generator import generate_random_terrain
 from entities.unit import Unit
 from entities.investigator import Investigator, create_test_squad
 from entities.enemy import Enemy, create_test_enemies
-from ui.ui_elements import InvestigatorTile, ActionBar, Button, TurnOrderTracker, ActionPointsDisplay
+from ui.ui_elements import InvestigatorTile, ActionBar, Button, TurnOrderTracker, ActionPointsDisplay, Tooltip
 
 
 class BattleScreen:
@@ -250,6 +250,13 @@ class BattleScreen:
             width=ap_display_width,
             height=ap_display_height
         )
+
+        # ====================================================================
+        # Terrain Tooltip
+        # ====================================================================
+        # Tooltip for displaying terrain information on hover
+        self.terrain_tooltip = Tooltip(padding=12)
+        self.hovered_tile: Optional[Tuple[int, int]] = None  # Track which tile is hovered
 
         # ====================================================================
         # Initialize Turn Order Tracker Data
@@ -983,6 +990,47 @@ class BattleScreen:
         # Update end turn button (hover effects)
         self.end_turn_button.update(self.mouse_pos)
 
+        # Update terrain tooltip (hover detection)
+        self._update_terrain_tooltip()
+
+    def _update_terrain_tooltip(self) -> None:
+        """
+        Update terrain tooltip based on mouse hover position.
+
+        Checks if mouse is hovering over a terrain tile with tooltip content,
+        and shows/hides the tooltip accordingly.
+        """
+        # Convert mouse position to grid coordinates
+        grid_x, grid_y = self._pixel_to_grid(self.mouse_pos)
+
+        # Check if hovering over a valid grid tile
+        if grid_x is not None and grid_y is not None:
+            tile = self.grid.get_tile(grid_x, grid_y)
+
+            # Only show tooltip for tiles with terrain (not empty tiles)
+            if tile and tile.has_tooltip():
+                # Update hovered tile
+                if self.hovered_tile != (grid_x, grid_y):
+                    self.hovered_tile = (grid_x, grid_y)
+
+                    # Set tooltip content from tile data
+                    self.terrain_tooltip.set_content(
+                        title=tile.tooltip_title,
+                        flavor_text=tile.tooltip_flavor,
+                        mechanics_text=tile.tooltip_mechanics
+                    )
+
+                # Show tooltip at mouse position
+                self.terrain_tooltip.show(self.mouse_pos)
+            else:
+                # Not hovering over terrain - hide tooltip
+                self.hovered_tile = None
+                self.terrain_tooltip.hide()
+        else:
+            # Mouse outside grid - hide tooltip
+            self.hovered_tile = None
+            self.terrain_tooltip.hide()
+
     def _check_win_lose(self):
         """
         Check if battle is won or lost.
@@ -1063,6 +1111,9 @@ class BattleScreen:
 
         # Draw action points display (bottom left)
         self.action_points_display.draw(self.screen)
+
+        # Draw terrain tooltip (drawn last so it appears on top)
+        self.terrain_tooltip.draw(self.screen)
 
         # Controls help disabled - action bar replaces it
         # self._draw_controls_help()

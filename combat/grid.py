@@ -41,16 +41,28 @@ class Tile:
             self.blocks_sight = True      # Full cover blocks line of sight
             self.defense_bonus = 40       # -40% hit chance for attackers
             self.symbol = "⬛"
+            # Tooltip data
+            self.tooltip_title = "Full Cover"
+            self.tooltip_flavor = "Solid terrain that provides complete protection"
+            self.tooltip_mechanics = "+40% chance for attacks to miss when behind this cover"
         elif terrain_type == "half_cover":
             self.blocks_movement = False
             self.blocks_sight = False     # Half cover doesn't block LOS
             self.defense_bonus = 20       # -20% hit chance for attackers
             self.symbol = "▪️"
+            # Tooltip data
+            self.tooltip_title = "Half Cover"
+            self.tooltip_flavor = "Low obstacles that provide partial protection"
+            self.tooltip_mechanics = "+20% chance for attacks to miss when behind this cover"
         else:  # empty
             self.blocks_movement = False
             self.blocks_sight = False
             self.defense_bonus = 0
             self.symbol = "⬜"
+            # Tooltip data (empty terrain has no tooltip)
+            self.tooltip_title = ""
+            self.tooltip_flavor = ""
+            self.tooltip_mechanics = ""
 
     def is_occupied(self) -> bool:
         """Check if this tile has a unit on it."""
@@ -63,6 +75,10 @@ class Tile:
     def get_position(self) -> Tuple[int, int]:
         """Get tile coordinates as tuple."""
         return (self.x, self.y)
+
+    def has_tooltip(self) -> bool:
+        """Check if this tile has tooltip content to display."""
+        return self.tooltip_title != ""
 
     def __repr__(self) -> str:
         """String representation for debugging."""
@@ -269,10 +285,18 @@ class Grid:
                 tile.blocks_sight = True
                 tile.defense_bonus = 40
                 tile.symbol = "⬛"
+                # Update tooltip data
+                tile.tooltip_title = "Full Cover"
+                tile.tooltip_flavor = "Solid terrain that provides complete protection"
+                tile.tooltip_mechanics = "+40% chance for attacks to miss when behind this cover"
             elif cover_type == "half_cover":
                 tile.blocks_sight = False
                 tile.defense_bonus = 20
                 tile.symbol = "▪️"
+                # Update tooltip data
+                tile.tooltip_title = "Half Cover"
+                tile.tooltip_flavor = "Low obstacles that provide partial protection"
+                tile.tooltip_mechanics = "+20% chance for attacks to miss when behind this cover"
             return True
         return False
 

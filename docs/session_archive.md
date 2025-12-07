@@ -4,6 +4,137 @@ This document contains historical development sessions. For the most recent sess
 
 ---
 
+## Session 8: Terrain Tooltip System ✅ COMPLETE
+
+**Completed**: 2025-12-08
+
+### What Was Built
+
+Successfully implemented and debugged a comprehensive terrain tooltip system for displaying contextual cover information:
+
+1. ✅ **Tooltip UI Component** (`ui/ui_elements.py`)
+   - `Tooltip` class (191 lines) for contextual information display
+   - Multi-line display: title (golden, bold) + flavor text (dim) + mechanics (normal)
+   - Semi-transparent background with border (alpha=230 for readability)
+   - Automatic screen edge avoidance algorithm (flips to other side of cursor)
+   - Bold title effect using double-render technique
+   - Configurable padding (12px), colors, and font sizes (26px title, 22px body)
+
+2. ✅ **Tile Tooltip Data** (`combat/grid.py`)
+   - Added tooltip fields to `Tile` class: `tooltip_title`, `tooltip_flavor`, `tooltip_mechanics`
+   - **Full Cover**: "Solid terrain that provides complete protection" / "+40% chance for attacks to miss"
+   - **Half Cover**: "Low obstacles that provide partial protection" / "+20% chance for attacks to miss"
+   - Empty tiles have no tooltip (empty strings)
+   - `has_tooltip()` method checks if tile has displayable content
+
+3. ✅ **Battle Screen Integration** (`combat/battle_screen.py`)
+   - `terrain_tooltip` instance created in battle screen initialization
+   - `hovered_tile` tracking variable for current mouse position
+   - `_update_terrain_tooltip()` method (35 lines) called every frame
+   - Converts mouse pixel position to grid coordinates
+   - Shows tooltip when hovering over terrain with cover
+   - Hides tooltip when hovering over empty tiles or outside grid
+   - Tooltip drawn last (appears on top of all other UI elements)
+
+4. ✅ **Critical Bug Fix**
+   - **Problem**: Tooltips not appearing despite correct implementation
+   - **Root Cause**: `Grid.add_cover()` method updated terrain type but **not tooltip fields**
+   - **Solution**: Updated `add_cover()` to set tooltip data when adding cover to tiles
+   - All tiles start as "empty" (no tooltip), then `add_cover()` is called to place cover
+   - If tooltip fields aren't updated, tiles have `terrain_type="full_cover"` but `tooltip_title=""`
+   - This caused `has_tooltip()` to return `False`, preventing tooltips from showing
+
+### Test Results
+
+```
+✅ Tooltip component tests passing (test_tooltip.py)
+   - Basic tooltip creation and display
+   - Edge avoidance at all screen corners
+   - Visual test (optional manual verification)
+
+✅ Integration tests passing (test_tooltip_integration.py)
+   - Tile tooltip data set correctly on creation
+   - add_cover() updates tooltip data (critical fix verified)
+   - All 6 terrain generators produce tiles with tooltips
+   - Generated terrain: symmetric, scattered, urban_ruins, ritual_site, open_field, chokepoint
+
+✅ User Experience
+   - Tooltips appear smoothly when hovering over terrain
+   - Tooltip follows mouse cursor with 15px offset
+   - Automatic edge avoidance keeps tooltip on-screen
+   - No lag or flicker (60 FPS maintained)
+```
+
+### Documentation Created
+
+1. ✅ `docs/08_terrain_tooltip_system.md` - Comprehensive tooltip system documentation
+   - Architecture overview with diagrams
+   - Tooltip UI component reference
+   - Tile tooltip data structure
+   - Battle screen integration details
+   - Screen edge avoidance algorithm
+   - Creating new tooltips guide
+   - Testing documentation
+   - Bug fix history and lessons learned
+
+2. ✅ `TOOLTIP_FIX_SUMMARY.md` - Debugging history and resolution
+   - Complete root cause analysis
+   - Step-by-step fix implementation
+   - Testing verification
+   - Usage instructions
+
+3. ✅ `testing/test_tooltip.py` - Component tests
+4. ✅ `testing/test_tooltip_integration.py` - Integration tests
+
+### Impact
+
+- **Problem Solved**: Players now see contextual information about terrain cover
+- **User Experience**: Tooltips enhance tactical decision-making by showing defense bonuses
+- **Code Quality**: Comprehensive test coverage ensures tooltips work correctly
+- **Bug Fix Pattern**: Learned important lesson about data initialization vs. mutation
+- **Future-Ready**: Tooltip system can be extended to units, abilities, and other UI elements
+
+### Visual Layout
+
+```
+When hovering over full cover:
+
+┌────────────────────────────────────────┐
+│ Full Cover                             │ <- Golden, bold
+│ Solid terrain that provides complete   │ <- Dim gray
+│ protection                             │
+│ +40% chance for attacks to miss when   │ <- Off-white
+│ behind this cover                      │
+└────────────────────────────────────────┘
+  ↑ Semi-transparent background (alpha=230)
+  15px offset from cursor
+```
+
+### Code Statistics
+
+- **Modified**: 3 files (+265 lines net)
+  - `ui/ui_elements.py` (+188 lines) - Complete Tooltip class
+  - `combat/grid.py` (+24 lines) - Tooltip data and fix to add_cover()
+  - `combat/battle_screen.py` (+53 lines) - Integration and update loop
+- **Created**: 2 test files (+294 lines)
+- **Documentation**: 2 guides (+400 lines)
+
+### Key Learning: Data Initialization vs. Mutation
+
+**Pattern Identified**: When objects have initialization logic AND mutation methods:
+- **Initialization**: Sets all related fields together (Tile.__init__)
+- **Mutation**: Must update ALL related fields, not just primary field (add_cover)
+
+**The Bug**:
+- `Tile.__init__()` set tooltip fields correctly when created as "full_cover"
+- But tiles start as "empty", then `add_cover()` is called
+- `add_cover()` only updated `terrain_type`, not tooltip fields
+- Result: Tiles had `terrain_type="full_cover"` but `tooltip_title=""`
+
+**The Fix**: Ensure mutation methods maintain data consistency across all related fields.
+
+---
+
 ## Session 3: Visual Rendering System ✅ COMPLETE
 
 **Completed**: 2025-11-28

@@ -1577,3 +1577,191 @@ class ActionPointsDisplay:
         count_surface = count_font.render(count_text, True, config.COLOR_TEXT)
         count_rect = count_surface.get_rect(centerx=self.rect.centerx, bottom=self.rect.bottom - 5)
         screen.blit(count_surface, count_rect)
+
+
+class Tooltip:
+    """
+    Tooltip display for showing contextual information on hover.
+
+    Displays a multi-line tooltip with:
+    - Bold title (first line)
+    - Italic flavor text (second line, optional)
+    - Regular mechanics text (third line, required)
+
+    The tooltip appears near the mouse cursor with automatic positioning
+    to avoid screen edges.
+    """
+
+    def __init__(self, padding: int = 12):
+        """
+        Initialize the tooltip.
+
+        Args:
+            padding: Internal padding around text (in pixels)
+        """
+        self.padding = padding
+        self.visible = False
+
+        # Tooltip content
+        self.title = ""
+        self.flavor_text = ""
+        self.mechanics_text = ""
+
+        # Position (dynamically calculated)
+        self.rect = None
+        self.offset_x = 15  # Offset from mouse cursor
+        self.offset_y = 15
+
+        # Visual settings
+        self.bg_color = (25, 25, 35, 230)  # Semi-transparent dark background
+        self.border_color = config.COLOR_MENU_BORDER
+        self.title_color = config.COLOR_TEXT_HIGHLIGHT  # Golden
+        self.flavor_color = config.COLOR_TEXT_DIM  # Dimmed
+        self.mechanics_color = config.COLOR_TEXT  # Normal
+
+        # Font sizes
+        self.title_font_size = 26
+        self.flavor_font_size = 22
+        self.mechanics_font_size = 22
+
+        # Line spacing
+        self.line_spacing = 6
+
+    def set_content(self, title: str, flavor_text: str, mechanics_text: str) -> None:
+        """
+        Set the tooltip content.
+
+        Args:
+            title: Bold title text (e.g., "Full Cover")
+            flavor_text: Italic flavor/description text (e.g., "Terrain that provides full cover")
+            mechanics_text: Regular mechanics text (e.g., "+40% for attacks to miss")
+        """
+        self.title = title
+        self.flavor_text = flavor_text
+        self.mechanics_text = mechanics_text
+
+    def show(self, mouse_pos: Tuple[int, int]) -> None:
+        """
+        Show the tooltip at the given mouse position.
+
+        Args:
+            mouse_pos: (x, y) mouse coordinates
+        """
+        self.visible = True
+        self._calculate_position(mouse_pos)
+
+    def hide(self) -> None:
+        """Hide the tooltip."""
+        self.visible = False
+
+    def _calculate_position(self, mouse_pos: Tuple[int, int]) -> None:
+        """
+        Calculate tooltip position with automatic edge avoidance.
+
+        Args:
+            mouse_pos: (x, y) mouse coordinates
+        """
+        # Render text to calculate size
+        title_font = pygame.font.Font(None, self.title_font_size)
+        flavor_font = pygame.font.Font(None, self.flavor_font_size)
+        mechanics_font = pygame.font.Font(None, self.mechanics_font_size)
+
+        # Render all lines to measure width
+        title_surface = title_font.render(self.title, True, self.title_color)
+
+        # Handle optional flavor text
+        flavor_surface = None
+        if self.flavor_text:
+            flavor_surface = flavor_font.render(self.flavor_text, True, self.flavor_color)
+
+        mechanics_surface = mechanics_font.render(self.mechanics_text, True, self.mechanics_color)
+
+        # Calculate dimensions
+        max_width = max(
+            title_surface.get_width(),
+            flavor_surface.get_width() if flavor_surface else 0,
+            mechanics_surface.get_width()
+        )
+
+        # Calculate height based on number of lines
+        total_height = title_surface.get_height()
+        if flavor_surface:
+            total_height += flavor_surface.get_height() + self.line_spacing
+        total_height += mechanics_surface.get_height() + self.line_spacing
+
+        # Tooltip dimensions with padding
+        tooltip_width = max_width + (self.padding * 2)
+        tooltip_height = total_height + (self.padding * 2)
+
+        # Position with offset from cursor
+        tooltip_x = mouse_pos[0] + self.offset_x
+        tooltip_y = mouse_pos[1] + self.offset_y
+
+        # Clamp to screen bounds (avoid going off-screen)
+        screen_width = config.SCREEN_WIDTH
+        screen_height = config.SCREEN_HEIGHT
+
+        # Right edge check
+        if tooltip_x + tooltip_width > screen_width:
+            tooltip_x = mouse_pos[0] - tooltip_width - self.offset_x
+
+        # Bottom edge check
+        if tooltip_y + tooltip_height > screen_height:
+            tooltip_y = mouse_pos[1] - tooltip_height - self.offset_y
+
+        # Top edge check
+        if tooltip_y < 0:
+            tooltip_y = 0
+
+        # Left edge check
+        if tooltip_x < 0:
+            tooltip_x = 0
+
+        self.rect = pygame.Rect(tooltip_x, tooltip_y, tooltip_width, tooltip_height)
+
+    def draw(self, screen: pygame.Surface) -> None:
+        """
+        Draw the tooltip.
+
+        Args:
+            screen: Surface to draw on
+        """
+        if not self.visible or not self.rect:
+            return
+
+        # Create a semi-transparent surface for the background
+        tooltip_surface = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
+
+        # Draw background with alpha
+        pygame.draw.rect(tooltip_surface, self.bg_color, tooltip_surface.get_rect())
+
+        # Draw border
+        pygame.draw.rect(tooltip_surface, self.border_color, tooltip_surface.get_rect(), 2)
+
+        # Render text lines
+        title_font = pygame.font.Font(None, self.title_font_size)
+        flavor_font = pygame.font.Font(None, self.flavor_font_size)
+        mechanics_font = pygame.font.Font(None, self.mechanics_font_size)
+
+        # Draw title (bold appearance by rendering twice with slight offset)
+        title_surface = title_font.render(self.title, True, self.title_color)
+        current_y = self.padding
+
+        # Simulate bold by rendering twice
+        tooltip_surface.blit(title_surface, (self.padding, current_y))
+        tooltip_surface.blit(title_surface, (self.padding + 1, current_y))
+
+        current_y += title_surface.get_height() + self.line_spacing
+
+        # Draw flavor text (italic - we'll simulate with normal + slant)
+        if self.flavor_text:
+            flavor_surface = flavor_font.render(self.flavor_text, True, self.flavor_color)
+            tooltip_surface.blit(flavor_surface, (self.padding, current_y))
+            current_y += flavor_surface.get_height() + self.line_spacing
+
+        # Draw mechanics text (normal)
+        mechanics_surface = mechanics_font.render(self.mechanics_text, True, self.mechanics_color)
+        tooltip_surface.blit(mechanics_surface, (self.padding, current_y))
+
+        # Blit the tooltip surface to the main screen
+        screen.blit(tooltip_surface, (self.rect.x, self.rect.y))

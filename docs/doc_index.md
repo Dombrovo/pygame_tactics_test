@@ -72,13 +72,21 @@ For detailed understanding of specific systems:
    - API reference and usage examples
    - Integration with backgrounds and equipment
 
-7. **[Action Points System](07_action_points_system.md)** ⭐ NEW
+7. **[Action Points System](07_action_points_system.md)**
    - 2-action economy design philosophy
    - Unit class integration (consume, check, reset)
    - ActionPointsDisplay UI component
    - Action bar smart enabling/disabling
    - Valid action combinations (Move-Move, Move-Attack, etc.)
    - Usage examples and testing
+
+8. **[Terrain Tooltip System](08_terrain_tooltip_system.md)** ⭐ NEW
+   - Tooltip UI component architecture
+   - Tile tooltip data structure
+   - Battle screen integration
+   - Screen edge avoidance algorithm
+   - Testing and bug fix documentation
+   - User experience design
 
 ---
 
@@ -96,11 +104,13 @@ For detailed understanding of specific systems:
 | Understand the battle system | [05_grid_and_battle_system.md](05_grid_and_battle_system.md) |
 | Understand the stat system | [06_stat_system.md](06_stat_system.md) |
 | Understand action points | [07_action_points_system.md](07_action_points_system.md) |
+| Understand tooltips | [08_terrain_tooltip_system.md](08_terrain_tooltip_system.md) |
 | See complete click flow | [04_data_flow.md](04_data_flow.md#mouse-click-flow---detailed) |
 | Add a new menu option | [02_architecture_overview.md](02_architecture_overview.md#adding-a-new-screen) |
 | Add a new enemy type | [05_grid_and_battle_system.md](05_grid_and_battle_system.md#enemy-classes) |
 | Apply stat modifiers | [06_stat_system.md](06_stat_system.md#usage-examples) |
 | Consume action points | [07_action_points_system.md](07_action_points_system.md#usage-examples) |
+| Create tooltips | [08_terrain_tooltip_system.md](08_terrain_tooltip_system.md#creating-tooltips) |
 
 ### Code Files (with extensive comments)
 
@@ -328,8 +338,8 @@ These docs should be updated when:
 - New components are created
 - Performance characteristics change
 
-Last updated: 2025-11-30 (Session 7: Action Points System + Movement)
-Version: 0.1.0 (MVP Phase 1 - 95% Complete)
+Last updated: 2025-12-08 (Session 8: Terrain Tooltip System)
+Version: 0.1.0 (MVP Phase 1 - 97% Complete)
 
 ---
 
