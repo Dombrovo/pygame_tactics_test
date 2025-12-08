@@ -500,9 +500,14 @@ class BattleScreen:
             True if movement was successful, False otherwise
         """
         # Can only move if:
-        # 1. It's a player unit's turn
-        # 2. Unit can still move this turn
-        # 3. Target tile is reachable
+        # 1. Movement mode is active (Move button was clicked)
+        # 2. It's a player unit's turn
+        # 3. Unit can still move this turn
+        # 4. Target tile is reachable
+
+        # Check if movement mode is active
+        if not self.movement_mode_active:
+            return False
 
         if not self.current_turn_unit:
             return False

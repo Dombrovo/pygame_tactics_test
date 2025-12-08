@@ -338,7 +338,15 @@ The system is designed to be extended:
 
 ### Development History
 
-- **[session_archive.md](session_archive.md)** - Previous development sessions (Session 2 & 3)
+- **[session_archive.md](session_archive.md)** - Complete development sessions archive (Sessions 2-9)
+  - Comprehensive details on all features implemented
+  - Session 9: Equipment & Inventory System
+  - Session 8: Terrain Tooltip System
+  - Session 7: Movement & Action Points
+  - Session 6: Turn Order Tracker Visual
+  - Session 5: Turn Order System
+  - Session 4: UI Enhancements & Character Portraits
+  - Earlier sessions (2-3)
 
 ---
 
@@ -351,8 +359,10 @@ These docs should be updated when:
 - New components are created
 - Performance characteristics change
 
-Last updated: 2025-12-08 (Session 9: Equipment & Inventory System)
+Last updated: 2025-12-08 (Documentation reorganization complete)
 Version: 0.1.0 (MVP Phase 1 - 98% Complete)
+
+**Note**: CLAUDE.md has been streamlined. For detailed session histories, see [session_archive.md](session_archive.md).
 
 ---
 
