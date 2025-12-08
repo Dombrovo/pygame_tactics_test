@@ -62,8 +62,8 @@ print(f"Path: (0,0) -> (3,3)")
 
 ## Current Development State
 
-**Last Updated**: 2025-12-08 (Session 9)
-**Current Phase**: Phase 1 - MVP (~98% Complete - Equipment System Complete, Line of Sight & Combat Next)
+**Last Updated**: 2025-12-08 (Session 10)
+**Current Phase**: Phase 1 - MVP (~99% Complete - Enemy AI Complete, Line of Sight & Combat Resolution Next)
 
 ### ✅ Completed Systems (High-Level Overview)
 
@@ -100,8 +100,9 @@ For detailed information on each system, see the [documentation](#documentation)
 - ✅ **Turn order**: Individual unit turns (random order, future: initiative-based)
 - ✅ **Action points**: 2 actions per turn (Move-Move, Move-Attack, Attack-Attack)
 - ✅ **Movement**: A* pathfinding, flood-fill for range calculation, click-to-move
+- ✅ **Enemy AI**: Cultists move 1 tile to highest health, Hounds move 2 tiles to nearest
 - ✅ **Visual feedback**: Dual highlights (green=current turn, yellow=selected), turn order tracker
-- 📖 *See [docs/07_action_points_system.md](docs/07_action_points_system.md) for details*
+- 📖 *See [docs/07_action_points_system.md](docs/07_action_points_system.md) and [docs/10_enemy_ai_system.md](docs/10_enemy_ai_system.md) for details*
 
 #### Visual Rendering
 - ✅ **Emoji font system**: Platform-specific emoji fonts with ASCII fallback
@@ -110,7 +111,7 @@ For detailed information on each system, see the [documentation](#documentation)
 - ✅ **UI panels**: Investigator tiles (left), unit info (right), action bar (bottom)
 
 #### Documentation
-- ✅ **8 comprehensive guides** covering Pygame basics, architecture, UI, data flow, systems
+- ✅ **10 comprehensive guides** covering Pygame basics, architecture, UI, data flow, systems, AI
 - ✅ **Inline code comments** in all source files
 - ✅ **Session archive** documenting development history
 - 📖 *See [docs/doc_index.md](docs/doc_index.md) for full documentation index*
@@ -131,8 +132,10 @@ For detailed information on each system, see the [documentation](#documentation)
 - ✅ Movement system complete with A* pathfinding
 - ✅ Action points system fully implemented (2 actions per turn)
 - ✅ Equipment system complete (weapons, damage, range, modifiers)
+- ✅ Enemy AI movement complete (Cultists 1 tile, Hounds 2 tiles)
 - ⏳ Line of Sight next (Bresenham's algorithm)
 - ⏳ Combat resolution next (hit chance, damage application)
+- ⏳ Enemy AI attacks (after combat resolution)
 
 ---
 
@@ -156,6 +159,7 @@ pygame_tactics_test/
 │   ├── grid.py                # Grid, Tile classes, cover system
 │   ├── pathfinding.py         # A* pathfinding, movement range calculation
 │   ├── terrain_generator.py   # Procedural terrain generation (6 generators)
+│   ├── enemy_ai.py            # Enemy AI (targeting, movement behaviors)
 │   └── battle_screen.py       # Battle UI, rendering, turn system, movement mode
 │
 ├── entities/                  # Entity System
@@ -178,7 +182,8 @@ pygame_tactics_test/
 │   ├── test_terrain_generation.py
 │   ├── test_tooltip.py
 │   ├── test_tooltip_integration.py
-│   └── test_equipment.py
+│   ├── test_equipment.py
+│   └── test_enemy_ai.py
 │
 └── docs/                      # Documentation
     ├── doc_index.md           # Documentation index (START HERE)
@@ -191,7 +196,8 @@ pygame_tactics_test/
     ├── 06_stat_system.md
     ├── 07_action_points_system.md
     ├── 08_terrain_tooltip_system.md
-    └── 09_equipment_system.md
+    ├── 09_equipment_system.md
+    └── 10_enemy_ai_system.md
 ```
 
 ---
@@ -292,11 +298,13 @@ source .venv/bin/activate          # Unnecessary with UV
 - [Action Points](docs/07_action_points_system.md) - 2-action economy
 - [Tooltips](docs/08_terrain_tooltip_system.md) - Contextual UI
 - [Equipment](docs/09_equipment_system.md) - Weapons and loadouts
+- [Enemy AI](docs/10_enemy_ai_system.md) - AI targeting and movement
 
 ### Development History
 
-**Recent sessions** (Sessions 4-9):
+**Recent sessions** (Sessions 4-10):
 - [Session Archive](docs/session_archive.md) - Detailed development history including:
+  - Session 10: Enemy AI System (movement behaviors)
   - Session 9: Equipment & Inventory System
   - Session 8: Terrain Tooltip System
   - Session 7: Movement & Action Points
@@ -311,13 +319,13 @@ source .venv/bin/activate          # Unnecessary with UV
 
 **Objective**: Get a single tactical battle playable with core mechanics working.
 
-**Status**: ~98% Complete
+**Status**: ~99% Complete
 
 **Remaining Features**:
 - Line of sight calculation (Bresenham's algorithm)
 - Combat resolution (hit chance, damage)
 - Attack actions (ranged, melee)
-- Basic enemy AI
+- Enemy AI attacks (movement complete)
 
 ---
 
@@ -326,12 +334,12 @@ source .venv/bin/activate          # Unnecessary with UV
 - **Future Roadmap**: [PLAN.md](PLAN.md) - Phases 2-5, system designs, long-term vision
 - **Developer Guide**: [CONTRIBUTING.md](CONTRIBUTING.md) - Code style, architecture, workflows
 - **Documentation Index**: [docs/doc_index.md](docs/doc_index.md) - All documentation files
-- **Session History**: [docs/session_archive.md](docs/session_archive.md) - Development sessions 2-9
+- **Session History**: [docs/session_archive.md](docs/session_archive.md) - Development sessions 2-10
 
 ---
 
-**Last Updated**: 2025-12-08 (Session 9)
-**Version**: 2.3 (Equipment System Complete)
+**Last Updated**: 2025-12-08 (Session 10)
+**Version**: 2.4 (Enemy AI Movement Complete)
 **Target Platform**: Windows/Mac/Linux Desktop
 **Engine**: Pygame CE 2.5.x
 **Python**: 3.10+

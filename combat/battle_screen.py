@@ -12,6 +12,7 @@ import config
 from combat.grid import Grid
 from combat.pathfinding import find_path, get_reachable_tiles
 from combat.terrain_generator import generate_random_terrain
+from combat import enemy_ai
 from entities.unit import Unit
 from entities.investigator import Investigator, create_test_squad
 from entities.enemy import Enemy, create_test_enemies
@@ -906,11 +907,12 @@ class BattleScreen:
         team_str = "Player" if self.current_turn_unit.team == "player" else "Enemy"
         print(f"\n{team_str} Turn: {self.current_turn_unit.name}")
 
-        # If enemy turn, execute AI (future implementation)
+        # If enemy turn, execute AI
         if self.current_turn_unit.team == "enemy":
-            # TODO: Execute enemy AI
-            # For now, immediately skip to next turn
-            print("  [AI not yet implemented - skipping enemy turn]")
+            # Execute enemy AI behavior
+            enemy_ai.execute_enemy_turn(self.current_turn_unit, self.player_units, self.grid)
+
+            # After AI completes its actions, advance to next turn
             self._advance_turn()
 
     def _end_turn(self):

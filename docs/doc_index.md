@@ -88,7 +88,7 @@ For detailed understanding of specific systems:
    - Testing and bug fix documentation
    - User experience design
 
-9. **[Equipment & Inventory System](09_equipment_system.md)** ⭐ NEW
+9. **[Equipment & Inventory System](09_equipment_system.md)**
    - Equipment framework (Equipment, Weapon, Armor, Accessory classes)
    - Weapon library (12 pre-defined weapons)
    - Unit integration (equipped_weapon, weapon properties)
@@ -96,6 +96,14 @@ For detailed understanding of specific systems:
    - Weapon modifiers and accuracy calculations
    - Automatic weapon assignment
    - Testing and usage examples
+
+10. **[Enemy AI System](10_enemy_ai_system.md)** ⭐ NEW
+   - AI targeting strategies (highest health vs nearest)
+   - Movement behaviors (Cultists 1 tile, Hounds 2 tiles)
+   - Pathfinding integration (A* to adjacent tiles)
+   - Battle screen integration
+   - Testing and debugging
+   - Future enhancements (attack logic, advanced tactics)
 
 ---
 
@@ -115,6 +123,7 @@ For detailed understanding of specific systems:
 | Understand action points | [07_action_points_system.md](07_action_points_system.md) |
 | Understand tooltips | [08_terrain_tooltip_system.md](08_terrain_tooltip_system.md) |
 | Understand equipment system | [09_equipment_system.md](09_equipment_system.md) |
+| Understand enemy AI | [10_enemy_ai_system.md](10_enemy_ai_system.md) |
 | See complete click flow | [04_data_flow.md](04_data_flow.md#mouse-click-flow---detailed) |
 | Add a new menu option | [02_architecture_overview.md](02_architecture_overview.md#adding-a-new-screen) |
 | Add a new enemy type | [05_grid_and_battle_system.md](05_grid_and_battle_system.md#enemy-classes) |
@@ -135,6 +144,7 @@ All code files have been extensively commented:
 - **[ui/settings_screen.py](../ui/settings_screen.py)** - Settings menu
 - **[combat/grid.py](../combat/grid.py)** - Grid and Tile system with cover mechanics
 - **[combat/battle_screen.py](../combat/battle_screen.py)** - Battle UI, emoji font system, and rendering
+- **[combat/enemy_ai.py](../combat/enemy_ai.py)** - Enemy AI targeting and movement behaviors
 - **[entities/unit.py](../entities/unit.py)** - Base unit class with stat system + equipment
 - **[entities/investigator.py](../entities/investigator.py)** - Player units with random names + weapons
 - **[entities/enemy.py](../entities/enemy.py)** - Enemy types (Cultist, Hound) + weapons
@@ -338,8 +348,9 @@ The system is designed to be extended:
 
 ### Development History
 
-- **[session_archive.md](session_archive.md)** - Complete development sessions archive (Sessions 2-9)
+- **[session_archive.md](session_archive.md)** - Complete development sessions archive (Sessions 2-10)
   - Comprehensive details on all features implemented
+  - Session 10: Enemy AI System
   - Session 9: Equipment & Inventory System
   - Session 8: Terrain Tooltip System
   - Session 7: Movement & Action Points
@@ -359,8 +370,8 @@ These docs should be updated when:
 - New components are created
 - Performance characteristics change
 
-Last updated: 2025-12-08 (Documentation reorganization complete)
-Version: 0.1.0 (MVP Phase 1 - 98% Complete)
+Last updated: 2025-12-08 (Enemy AI System added)
+Version: 0.1.0 (MVP Phase 1 - 99% Complete)
 
 **Note**: CLAUDE.md has been streamlined. For detailed session histories, see [session_archive.md](session_archive.md).
 
