@@ -18,8 +18,6 @@ class Enemy(Unit):
     Extends Unit with enemy-specific behaviors.
     Enemy weapons are handled through the equipment system (equipped_weapon).
 
-    Note: The old weapon_range, attack_type, sanity_damage parameters
-    have been replaced by the equipment system. Use equip_weapon() instead.
     """
 
     def __init__(
@@ -30,11 +28,7 @@ class Enemy(Unit):
         accuracy: int,
         will: int,
         movement_range: int,
-        symbol: str,
-        # Legacy parameters kept for backward compatibility (not used)
-        weapon_range: int = None,
-        attack_type: str = None,
-        sanity_damage: int = None
+        symbol: str
     ):
         """
         Initialize an enemy unit.
@@ -47,9 +41,6 @@ class Enemy(Unit):
             will: Sanity defense
             movement_range: Tiles per turn
             symbol: Unicode symbol for display
-            weapon_range: DEPRECATED - Use equip_weapon() instead
-            attack_type: DEPRECATED - Use equip_weapon() instead
-            sanity_damage: DEPRECATED - Use equip_weapon() instead
         """
         super().__init__(
             name=name,
@@ -62,8 +53,6 @@ class Enemy(Unit):
             symbol=symbol
         )
 
-        # Weapon stats now come from equipped_weapon
-        # Subclasses should call self.equip_weapon() to set their weapon
 
     def get_info_text(self) -> str:
         """
@@ -75,12 +64,15 @@ class Enemy(Unit):
         lines = [
             f"{self.symbol} {self.name}",
             f"HP: {self.current_health}/{self.max_health}",
-            f"Range: {self.weapon_range} tiles",
-            f"Attack: {self.attack_type}",
         ]
 
-        if self.weapon_sanity_damage > 0:
-            lines.append(f"[!] Sanity Dmg: {self.weapon_sanity_damage}")
+        # Show weapon info if equipped
+        if self.equipped_weapon:
+            lines.append(f"Range: {self.equipped_weapon.weapon_range} tiles")
+            lines.append(f"Attack: {self.equipped_weapon.attack_type}")
+
+            if self.equipped_weapon.sanity_damage > 0:
+                lines.append(f"[!] Sanity Dmg: {self.equipped_weapon.sanity_damage}")
 
         if self.is_incapacitated:
             lines.append("[X] DEFEATED")
@@ -90,14 +82,13 @@ class Enemy(Unit):
 
 class Cultist(Enemy):
     """
-    Cultist - Ranged human enemy.
-
-    Cultists are weak but attack from range with firearms.
+    Cultist - Ranged human enemy
+    Cultists are weak and attack from range with firearms
     Stats:
-    - Medium health
+    - Medium health (10 health) 
     - Ranged attack (3 tile range)
     - No sanity damage (just guns)
-    - Moderate accuracy
+    - Moderate accuracy (60 base accuracy)
     """
 
     def __init__(self, name: str = "Cultist"):
@@ -114,13 +105,10 @@ class Cultist(Enemy):
             accuracy=60,          # Lower accuracy than investigators
             will=3,               # Low will
             movement_range=4,     # Standard movement
-            symbol="🔫",          # Gun symbol
-            weapon_range=3,       # Can shoot 3 tiles away
-            attack_type="ranged",
-            sanity_damage=0       # Physical damage only
+            symbol="🔫"           # Gun symbol
         )
 
-        # Equip weapon (uses equipment system)
+        # Equip weapon (uses equipment system - weapon provides range/attack type/damage)
         self.equip_weapon(equipment.CULTIST_PISTOL)
 
     def __repr__(self) -> str:
@@ -131,15 +119,14 @@ class Cultist(Enemy):
 
 class HoundOfTindalos(Enemy):
     """
-    Hound of Tindalos - Fast melee horror.
-
-    Interdimensional predators that hunt through angles of time.
+    Hound of Tindalos - Fast melee horror
+    Interdimensional predators that hunt through angles of time
     Stats:
-    - Low health (glass cannon)
-    - Very fast movement
+    - Low health (7 Health)
+    - Very fast movement (6 movement_range)
     - Melee only (1 tile range)
-    - Causes significant sanity damage
-    - High accuracy
+    - Causes sanity damage (5 sanity_damage)
+    - High accuracy (75 base accuracy)
     """
 
     def __init__(self, name: str = "Hound of Tindalos"):
@@ -156,13 +143,10 @@ class HoundOfTindalos(Enemy):
             accuracy=75,          # High accuracy for melee
             will=10,              # Very high will
             movement_range=6,     # FAST - can close distance quickly
-            symbol="🐺",          # Wolf symbol
-            weapon_range=1,       # Melee only (adjacent tiles)
-            attack_type="melee",
-            sanity_damage=5       # Seeing it up close causes sanity loss
+            symbol="🐺"           # Wolf symbol
         )
 
-        # Equip weapon (uses equipment system)
+        # Equip weapon (uses equipment system - weapon provides range/attack type/sanity damage)
         self.equip_weapon(equipment.HOUND_CLAWS)
 
     def __repr__(self) -> str:
@@ -175,8 +159,34 @@ def create_test_enemies() -> List[Enemy]:
     """
     Create a test group of enemies for MVP testing.
 
+    Randomly selects between 4 squad types:
+    - Balanced: 2 Cultists + 2 Hounds
+    - Cultist squad: 4 Cultists (easier)
+    - Hound pack: 3 Hounds (harder)
+    - Mixed: 3 Cultists + 1 Hound
+
     Returns:
-        List of 4 enemies (2 Cultists, 2 Hounds)
+        List of enemies (3-4 depending on squad type)
+    """
+    import random
+    # Store function references (not calling them yet)
+    enemy_squad_choices = {
+        'balanced': create_balanced_squad,
+        'cultist': create_cultist_squad,
+        'hounds': create_hound_pack,
+        'cultists_with_hound': create_cultists_with_hound_pack
+    }
+    # Pick a random squad type and call the function
+    enemy_squad = random.choice(list(enemy_squad_choices.keys()))
+    return enemy_squad_choices[enemy_squad]()
+
+
+def create_balanced_squad() -> List[Enemy]:
+    """
+    Create a squad of 4 Cultists (easier encounter).
+
+    Returns:
+        List of 4 Cultists
     """
     enemies = [
         Cultist(name="Cultist Alpha"),
@@ -195,12 +205,14 @@ def create_cultist_squad() -> List[Enemy]:
     Returns:
         List of 4 Cultists
     """
-    return [
-        Cultist(name="Cultist 1"),
-        Cultist(name="Cultist 2"),
-        Cultist(name="Cultist 3"),
-        Cultist(name="Cultist 4"),
+    enemies = [
+        Cultist(name="Cultist Alpha"),
+        Cultist(name="Cultist Beta"),
+        Cultist(name="Cultist Charlie"),
+        Cultist(name="Cultist Delta"),
     ]
+
+    return enemies
 
 
 def create_hound_pack() -> List[Enemy]:
@@ -210,8 +222,25 @@ def create_hound_pack() -> List[Enemy]:
     Returns:
         List of 3 Hounds
     """
-    return [
-        HoundOfTindalos(name="Hound 1"),
-        HoundOfTindalos(name="Hound 2"),
-        HoundOfTindalos(name="Hound 3"),
+    enemies = [
+        HoundOfTindalos(name="Hound Alpha"),
+        HoundOfTindalos(name="Hound Beta"),
+        HoundOfTindalos(name="Hound Charlie"),
     ]
+    return enemies
+
+
+def create_cultists_with_hound_pack() -> List[Enemy]:
+    """
+    Create a pack of 3 Hounds (harder encounter).
+
+    Returns:
+        List of 3 Hounds
+    """
+    enemies = [
+        Cultist(name="Cultist Alpha"),
+        Cultist(name="Cultist Beta"),
+        Cultist(name="Cultist Charlie"),
+        HoundOfTindalos(name="Hound Alpha"),
+    ]
+    return enemies

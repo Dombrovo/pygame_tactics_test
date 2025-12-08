@@ -618,5 +618,75 @@ Successfully implemented comprehensive UI enhancements and character portrait sy
 
 ---
 
-**Last Updated**: 2025-12-08 (Session 9 - Equipment System)
+## Session 10.1: Enemy System Cleanup & Random Squad Generation ✅ COMPLETE
+
+**Completed**: 2025-12-08
+
+### What Was Fixed
+
+Bug fixes and enhancements to the enemy system following Session 10 (Enemy AI):
+
+1. ✅ **Enemy Constructor Cleanup** (`entities/enemy.py`)
+   - **Problem**: Cultist and Hound constructors were passing invalid parameters (`weapon_range`, `attack_type`, `sanity_damage`) to parent `Enemy.__init__()`
+   - **Solution**: Removed these parameters - the equipment system now handles all weapon stats
+   - **Impact**: Cleaner code, proper use of composition pattern
+   - Enemy weapons provide stats via `equipped_weapon` property delegation
+
+2. ✅ **Enemy Info Display Fix** (`entities/enemy.py`)
+   - **Problem**: `get_info_text()` referenced non-existent attributes (`self.weapon_range`, `self.attack_type`, `self.weapon_sanity_damage`)
+   - **Solution**: Updated to use `self.equipped_weapon.weapon_range`, `self.equipped_weapon.attack_type`, etc.
+   - **Impact**: Enemy stat display now works correctly in UI
+
+3. ✅ **Random Enemy Squad Generation** (`entities/enemy.py`)
+   - **Problem**: Double function call bug in `create_test_enemies()` - dictionary stored function results, then tried to call them again
+   - **Solution**: Changed dictionary to store function references (not calls), then call the selected function
+   - **Enhancement**: Each battle now randomly selects from 4 squad types for variety:
+     - **Balanced**: 2 Cultists + 2 Hounds (standard difficulty)
+     - **Cultist Squad**: 4 Cultists (easier - all ranged)
+     - **Hound Pack**: 3 Hounds (harder - all fast melee)
+     - **Mixed**: 3 Cultists + 1 Hound (tactical variety)
+
+### Code Changes
+
+**Modified**: 1 file (entities/enemy.py)
+- Simplified Cultist constructor (removed 3 invalid parameters)
+- Simplified Hound constructor (removed 3 invalid parameters)
+- Fixed `get_info_text()` to use equipment properties
+- Fixed `create_test_enemies()` function reference bug
+- Added proper documentation to all squad generation functions
+
+**Updated Documentation**: 4 files
+- `CLAUDE.md` - Added enemy spawning feature, updated version to 2.4.1
+- `docs/10_enemy_ai_system.md` - Added Enemy Squad Generation section with constructor examples
+- `docs/05_grid_and_battle_system.md` - Updated enemy spawning examples
+- `docs/session_archive.md` - This entry
+
+### Testing
+
+All existing tests continue to pass:
+- ✅ `testing/test_enemy_ai.py` - AI targeting and movement
+- ✅ `testing/test_equipment.py` - Equipment system integration
+- ✅ Game launches without errors
+- ✅ Random squad selection working correctly
+
+### Impact
+
+**Better Code Quality**:
+- Proper use of equipment system (composition over constructor parameters)
+- Cleaner enemy class constructors
+- Consistent with investigator equipment pattern
+
+**Gameplay Variety**:
+- Each battle has different enemy composition
+- Players face varied tactical challenges
+- Testing different strategies becomes more important
+
+**Maintainability**:
+- Adding new weapons to enemies is now trivial (just `equip_weapon()`)
+- Weapon stats centralized in `equipment.py`
+- No duplicate stat definitions
+
+---
+
+**Last Updated**: 2025-12-08 (Session 10.1 - Enemy System Cleanup)
 **See Also**: [CLAUDE.md](../CLAUDE.md) for current project state

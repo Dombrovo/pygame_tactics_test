@@ -247,11 +247,17 @@ class HoundOfTindalos(Enemy):
 from entities.enemy import create_test_enemies
 
 enemies = create_test_enemies()
-# Returns: [2 Cultists, 2 Hounds]
+# Randomly returns one of 4 squad types:
+# - Balanced: 2 Cultists + 2 Hounds
+# - Cultist squad: 4 Cultists
+# - Hound pack: 3 Hounds
+# - Mixed: 3 Cultists + 1 Hound
 
-# Alternative generators:
-cultist_squad = create_cultist_squad()  # 4 Cultists
-hound_pack = create_hound_pack()        # 3 Hounds
+# Individual squad generators:
+balanced = create_balanced_squad()               # 2 Cultists + 2 Hounds
+cultist_squad = create_cultist_squad()           # 4 Cultists
+hound_pack = create_hound_pack()                 # 3 Hounds
+mixed = create_cultists_with_hound_pack()        # 3 Cultists + 1 Hound
 ```
 
 ---

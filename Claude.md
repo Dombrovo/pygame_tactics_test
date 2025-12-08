@@ -93,6 +93,7 @@ For detailed information on each system, see the [documentation](#documentation)
 - ✅ **Base Unit class**: Health + sanity dual resource, stat modifiers pattern
 - ✅ **Investigators**: Random name generation (1920s theme), character portraits (55 unique images), role-based stats
 - ✅ **Enemies**: Cultist (ranged), Hound of Tindalos (fast melee)
+- ✅ **Enemy spawning**: Random squad selection (4 squad types: balanced, cultist-only, hound-pack, mixed)
 - ✅ **Equipment system**: 12 weapons with damage, range, attack type, accuracy modifiers
 - 📖 *See [docs/06_stat_system.md](docs/06_stat_system.md) and [docs/09_equipment_system.md](docs/09_equipment_system.md) for details*
 
@@ -338,8 +339,8 @@ source .venv/bin/activate          # Unnecessary with UV
 
 ---
 
-**Last Updated**: 2025-12-08 (Session 10)
-**Version**: 2.4 (Enemy AI Movement Complete)
+**Last Updated**: 2025-12-08 (Session 10.1 - Bug Fixes & Enemy Spawning)
+**Version**: 2.4.1 (Random Enemy Squad Generation)
 **Target Platform**: Windows/Mac/Linux Desktop
 **Engine**: Pygame CE 2.5.x
 **Python**: 3.10+

@@ -7,13 +7,14 @@
 
 ## Overview
 
-The enemy AI system implements basic tactical movement behaviors for enemy units during their turns in tactical combat. Different enemy types use different strategies to approach and engage player investigators.
+The enemy AI system implements basic tactical movement behaviors for enemy units during their turns in tactical combat. Different enemy types use different strategies to approach and engage player investigators. The system also includes randomized squad generation to provide variety across battles.
 
 ---
 
 ## File Location
 
-- **Module**: `combat/enemy_ai.py`
+- **Module**: `combat/enemy_ai.py` (AI movement logic)
+- **Module**: `entities/enemy.py` (Enemy classes and squad generation)
 - **Integration**: `combat/battle_screen.py` (lines 15, 910-916)
 - **Tests**: `testing/test_enemy_ai.py`
 
@@ -34,6 +35,92 @@ The enemy AI system implements basic tactical movement behaviors for enemy units
 **Movement**: Moves **2 tiles** towards target per turn
 
 **Rationale**: Hounds use aggressive pack tactics, rapidly closing distance with the nearest prey using their superior speed.
+
+---
+
+## Enemy Squad Generation
+
+### Random Squad Selection
+
+Each battle randomly selects one of four pre-configured squad types to provide variety and different tactical challenges.
+
+**Function**: `create_test_enemies()` in `entities/enemy.py`
+
+**Squad Types**:
+
+1. **Balanced Squad** (`create_balanced_squad()`):
+   - 2 Cultists + 2 Hounds
+   - Balanced mix of ranged and melee threats
+   - Original/standard difficulty
+
+2. **Cultist Squad** (`create_cultist_squad()`):
+   - 4 Cultists
+   - All ranged attackers
+   - Easier encounter (less mobility, spread out)
+
+3. **Hound Pack** (`create_hound_pack()`):
+   - 3 Hounds
+   - All fast melee
+   - Harder encounter (aggressive, high speed)
+
+4. **Mixed Squad** (`create_cultists_with_hound_pack()`):
+   - 3 Cultists + 1 Hound
+   - Heavy ranged with single melee threat
+   - Tactical variety
+
+**Implementation**:
+```python
+def create_test_enemies() -> List[Enemy]:
+    import random
+    # Store function references (not calling them yet)
+    enemy_squad_choices = {
+        'balanced': create_balanced_squad,
+        'cultist': create_cultist_squad,
+        'hounds': create_hound_pack,
+        'cultists_with_hound': create_cultists_with_hound_pack
+    }
+    # Pick a random squad type and call the function
+    enemy_squad = random.choice(list(enemy_squad_choices.keys()))
+    return enemy_squad_choices[enemy_squad]()
+```
+
+### Enemy Class Constructors
+
+**Important**: Enemy constructors have been simplified to use the equipment system. Weapon stats (range, attack type, sanity damage) are provided by equipped weapons, not constructor parameters.
+
+**Cultist Constructor**:
+```python
+def __init__(self, name: str = "Cultist"):
+    super().__init__(
+        name=name,
+        max_health=10,
+        max_sanity=8,
+        accuracy=60,
+        will=3,
+        movement_range=4,
+        symbol="🔫"
+    )
+    # Equip weapon (weapon provides range/attack type/damage)
+    self.equip_weapon(equipment.CULTIST_PISTOL)
+```
+
+**Hound Constructor**:
+```python
+def __init__(self, name: str = "Hound of Tindalos"):
+    super().__init__(
+        name=name,
+        max_health=8,
+        max_sanity=15,
+        accuracy=75,
+        will=10,
+        movement_range=6,
+        symbol="🐺"
+    )
+    # Equip weapon (weapon provides range/attack type/sanity damage)
+    self.equip_weapon(equipment.HOUND_CLAWS)
+```
+
+**Note**: The old parameters `weapon_range`, `attack_type`, and `sanity_damage` have been removed from enemy constructors. Use `enemy.equipped_weapon.weapon_range`, `enemy.equipped_weapon.attack_type`, and `enemy.equipped_weapon.sanity_damage` instead.
 
 ---
 
@@ -336,19 +423,25 @@ if enemy.can_attack():
 
 ```python
 from entities.enemy import Enemy
+from entities import equipment
 
 class Shoggoth(Enemy):
+    """
+    Shoggoth - Large amorphous horror
+    Targets investigators with low sanity to break morale
+    """
     def __init__(self, name: str = "Shoggoth"):
         super().__init__(
             name=name,
-            max_health=20,
-            max_sanity=20,
-            accuracy=50,
-            will=15,
-            movement_range=3,
-            symbol="[S]"
+            max_health=20,      # Very tanky
+            max_sanity=20,      # Eldritch entity
+            accuracy=50,        # Slow but hits hard
+            will=15,            # High will
+            movement_range=3,   # Slow movement
+            symbol="🦑"         # Tentacle symbol
         )
-        self.equip_weapon(equipment.SHOGGOTH_SLAM)
+        # Equip weapon (provides attack stats)
+        self.equip_weapon(equipment.TENTACLE_STRIKE)
 
 # In enemy_ai.py execute_enemy_turn():
 elif isinstance(enemy, Shoggoth):
@@ -356,10 +449,19 @@ elif isinstance(enemy, Shoggoth):
     target = find_lowest_sanity_target(investigators)
     max_movement = 1
     print(f"  {enemy.name} targeting lowest sanity investigator")
+
+# Add to squad generation in entities/enemy.py:
+def create_shoggoth_encounter() -> List[Enemy]:
+    """Create a boss encounter with 1 Shoggoth + 2 Cultists."""
+    return [
+        Shoggoth(name="Primordial Shoggoth"),
+        Cultist(name="Cultist Alpha"),
+        Cultist(name="Cultist Beta"),
+    ]
 ```
 
 ---
 
-**Last Updated**: 2025-12-08 (Session 10)
+**Last Updated**: 2025-12-08 (Session 10.1)
 **Author**: Claude Sonnet 4.5
 **Status**: Production Ready
