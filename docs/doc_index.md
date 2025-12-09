@@ -97,13 +97,23 @@ For detailed understanding of specific systems:
    - Automatic weapon assignment
    - Testing and usage examples
 
-10. **[Enemy AI System](10_enemy_ai_system.md)** ⭐ NEW
+10. **[Enemy AI System](10_enemy_ai_system.md)**
    - AI targeting strategies (highest health vs nearest)
    - Movement behaviors (Cultists 1 tile, Hounds 2 tiles)
    - Pathfinding integration (A* to adjacent tiles)
    - Battle screen integration
    - Testing and debugging
    - Future enhancements (attack logic, advanced tactics)
+
+11. **[Combat Deck System](11_combat_deck_system.md)** ⭐ NEW
+   - Personal deck-based combat resolution (Gloomhaven-style)
+   - Card system (NULL, x2, +2, +1, -1, +0)
+   - Standard 20-card deck composition
+   - Drawing, reshuffling, and statistics tracking
+   - Investigator integration (personal decks)
+   - Deck improvement and progression
+   - Usage in attack resolution
+   - Testing and examples
 
 ---
 
@@ -124,6 +134,7 @@ For detailed understanding of specific systems:
 | Understand tooltips | [08_terrain_tooltip_system.md](08_terrain_tooltip_system.md) |
 | Understand equipment system | [09_equipment_system.md](09_equipment_system.md) |
 | Understand enemy AI | [10_enemy_ai_system.md](10_enemy_ai_system.md) |
+| Understand combat deck system | [11_combat_deck_system.md](11_combat_deck_system.md) |
 | See complete click flow | [04_data_flow.md](04_data_flow.md#mouse-click-flow---detailed) |
 | Add a new menu option | [02_architecture_overview.md](02_architecture_overview.md#adding-a-new-screen) |
 | Add a new enemy type | [05_grid_and_battle_system.md](05_grid_and_battle_system.md#enemy-classes) |
@@ -132,6 +143,8 @@ For detailed understanding of specific systems:
 | Consume action points | [07_action_points_system.md](07_action_points_system.md#usage-examples) |
 | Equip weapons | [09_equipment_system.md](09_equipment_system.md#usage-examples) |
 | Create tooltips | [08_terrain_tooltip_system.md](08_terrain_tooltip_system.md#creating-tooltips) |
+| Use combat decks | [11_combat_deck_system.md](11_combat_deck_system.md#usage-in-combat-resolution) |
+| Improve decks | [11_combat_deck_system.md](11_combat_deck_system.md#deck-progression-system-phase-2) |
 
 ### Code Files (with extensive comments)
 
@@ -146,9 +159,10 @@ All code files have been extensively commented:
 - **[combat/battle_screen.py](../combat/battle_screen.py)** - Battle UI, emoji font system, and rendering
 - **[combat/enemy_ai.py](../combat/enemy_ai.py)** - Enemy AI targeting and movement behaviors
 - **[entities/unit.py](../entities/unit.py)** - Base unit class with stat system + equipment
-- **[entities/investigator.py](../entities/investigator.py)** - Player units with random names + weapons
+- **[entities/investigator.py](../entities/investigator.py)** - Player units with random names + weapons + combat decks
 - **[entities/enemy.py](../entities/enemy.py)** - Enemy types (Cultist, Hound) + weapons
 - **[entities/equipment.py](../entities/equipment.py)** - Equipment system (weapons, armor, accessories)
+- **[entities/combat_deck.py](../entities/combat_deck.py)** - Combat deck system (Card, CombatDeck classes)
 - **[assets/json/names_data.json](../assets/json/names_data.json)** - Name database (male/female/nicknames)
 
 ---

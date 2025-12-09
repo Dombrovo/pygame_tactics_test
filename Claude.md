@@ -62,8 +62,8 @@ print(f"Path: (0,0) -> (3,3)")
 
 ## Current Development State
 
-**Last Updated**: 2025-12-08 (Session 10)
-**Current Phase**: Phase 1 - MVP (~99% Complete - Enemy AI Complete, Line of Sight & Combat Resolution Next)
+**Last Updated**: 2025-12-08 (Session 11)
+**Current Phase**: Phase 1 - MVP (~99% Complete - Combat Deck System Complete, Line of Sight & Combat Resolution Next)
 
 ### ✅ Completed Systems (High-Level Overview)
 
@@ -95,7 +95,8 @@ For detailed information on each system, see the [documentation](#documentation)
 - ✅ **Enemies**: Cultist (ranged), Hound of Tindalos (fast melee)
 - ✅ **Enemy spawning**: Random squad selection (4 squad types: balanced, cultist-only, hound-pack, mixed)
 - ✅ **Equipment system**: 12 weapons with damage, range, attack type, accuracy modifiers
-- 📖 *See [docs/06_stat_system.md](docs/06_stat_system.md) and [docs/09_equipment_system.md](docs/09_equipment_system.md) for details*
+- ✅ **Combat deck system**: Personal 20-card decks for each investigator (similar to Gloomhaven)
+- 📖 *See [docs/06_stat_system.md](docs/06_stat_system.md), [docs/09_equipment_system.md](docs/09_equipment_system.md), and [docs/11_combat_deck_system.md](docs/11_combat_deck_system.md) for details*
 
 #### Combat Mechanics
 - ✅ **Turn order**: Individual unit turns (random order, future: initiative-based)
@@ -112,7 +113,7 @@ For detailed information on each system, see the [documentation](#documentation)
 - ✅ **UI panels**: Investigator tiles (left), unit info (right), action bar (bottom)
 
 #### Documentation
-- ✅ **10 comprehensive guides** covering Pygame basics, architecture, UI, data flow, systems, AI
+- ✅ **11 comprehensive guides** covering Pygame basics, architecture, UI, data flow, systems, AI, combat decks
 - ✅ **Inline code comments** in all source files
 - ✅ **Session archive** documenting development history
 - 📖 *See [docs/doc_index.md](docs/doc_index.md) for full documentation index*
@@ -134,8 +135,9 @@ For detailed information on each system, see the [documentation](#documentation)
 - ✅ Action points system fully implemented (2 actions per turn)
 - ✅ Equipment system complete (weapons, damage, range, modifiers)
 - ✅ Enemy AI movement complete (Cultists 1 tile, Hounds 2 tiles)
+- ✅ Combat deck system complete (20-card decks, ready for attack resolution integration)
 - ⏳ Line of Sight next (Bresenham's algorithm)
-- ⏳ Combat resolution next (hit chance, damage application)
+- ⏳ Combat resolution next (hit chance, damage application, deck integration)
 - ⏳ Enemy AI attacks (after combat resolution)
 
 ---
@@ -165,9 +167,10 @@ pygame_tactics_test/
 │
 ├── entities/                  # Entity System
 │   ├── unit.py                # Base Unit (with stat modifiers + equipment)
-│   ├── investigator.py        # Player units (random names + portraits + weapons)
+│   ├── investigator.py        # Player units (random names + portraits + weapons + combat decks)
 │   ├── enemy.py               # Enemy units (Cultist, Hound + weapons)
-│   └── equipment.py           # Equipment system (weapons, armor, accessories)
+│   ├── equipment.py           # Equipment system (weapons, armor, accessories)
+│   └── combat_deck.py         # Combat deck system (Card, CombatDeck classes)
 │
 ├── assets/                    # Game assets
 │   ├── images/                # Character portraits (55 unique), sprites
@@ -184,7 +187,8 @@ pygame_tactics_test/
 │   ├── test_tooltip.py
 │   ├── test_tooltip_integration.py
 │   ├── test_equipment.py
-│   └── test_enemy_ai.py
+│   ├── test_enemy_ai.py
+│   └── test_combat_deck.py
 │
 └── docs/                      # Documentation
     ├── doc_index.md           # Documentation index (START HERE)
@@ -198,7 +202,8 @@ pygame_tactics_test/
     ├── 07_action_points_system.md
     ├── 08_terrain_tooltip_system.md
     ├── 09_equipment_system.md
-    └── 10_enemy_ai_system.md
+    ├── 10_enemy_ai_system.md
+    └── 11_combat_deck_system.md
 ```
 
 ---

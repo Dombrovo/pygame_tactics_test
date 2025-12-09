@@ -7,6 +7,7 @@ They have additional attributes for progression and traits (Phase 2+).
 
 from entities.unit import Unit
 from entities import equipment  # Import equipment module for weapons
+from entities.combat_deck import CombatDeck, create_standard_deck, Card
 from typing import List, Literal, Dict, Any, Optional
 import random
 import json
@@ -256,6 +257,11 @@ class Investigator(Unit):
         self.permanent_injuries: List[str] = []
         self.permanent_madness: List[str] = []
 
+        # Combat Deck System (Phase 1.5 - for attack resolution)
+        # Each investigator has a personal deck that persists across battles
+        # The deck is drawn from during combat to modify attack outcomes
+        self.combat_deck: CombatDeck = create_standard_deck(name)
+
     def gain_experience(self, amount: int):
         """
         Add experience points (Phase 2+ feature).
@@ -307,6 +313,46 @@ class Investigator(Unit):
         if madness not in self.permanent_madness:
             self.permanent_madness.append(madness)
             # TODO: Apply sanity penalties or behavioral changes
+
+    def reset_combat_deck(self):
+        """
+        Reset combat deck for a new battle.
+
+        Moves all cards from discard back to draw pile and shuffles.
+        Call this at the start of each battle.
+        """
+        self.combat_deck.reset()
+
+    def draw_combat_card(self) -> Optional[Card]:
+        """
+        Draw a card from the combat deck.
+
+        Convenience method that wraps deck.draw().
+        Used during attack resolution to modify damage/hit chance.
+
+        Returns:
+            The drawn card, or None if deck is empty
+
+        Example:
+            >>> card = investigator.draw_combat_card()
+            >>> if card:
+            >>>     modified_damage = card.apply_to_damage(base_damage)
+        """
+        return self.combat_deck.draw()
+
+    def get_deck_stats(self) -> Dict[str, Any]:
+        """
+        Get combat deck statistics.
+
+        Returns:
+            Dictionary with deck info (size, composition, statistics)
+        """
+        return {
+            "total_cards": self.combat_deck.size(),
+            "cards_remaining": self.combat_deck.cards_remaining(),
+            "composition": self.combat_deck.get_deck_composition(),
+            "statistics": self.combat_deck.get_statistics()
+        }
 
     def get_info_text(self) -> str:
         """
