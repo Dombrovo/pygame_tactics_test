@@ -62,8 +62,8 @@ print(f"Path: (0,0) -> (3,3)")
 
 ## Current Development State
 
-**Last Updated**: 2025-12-08 (Session 11)
-**Current Phase**: Phase 1 - MVP (~99% Complete - Combat Deck System Complete, Line of Sight & Combat Resolution Next)
+**Last Updated**: 2025-12-09 (Session 12)
+**Current Phase**: Phase 1 - MVP (~99% Complete - Popup Notification System Complete, Line of Sight & Combat Resolution Next)
 
 ### ✅ Completed Systems (High-Level Overview)
 
@@ -75,8 +75,9 @@ For detailed information on each system, see the [documentation](#documentation)
 - ✅ Main entry point (screen navigation, game loop, 60 FPS)
 
 #### UI Framework
-- ✅ **Base Components**: Button, MenuButton, TextLabel, Tooltip
+- ✅ **Base Components**: Button, MenuButton, TextLabel, Tooltip, Popup
 - ✅ **Battle UI**: InvestigatorTile, ActionButton, ActionBar, TurnOrderTracker, ActionPointsDisplay
+- ✅ **Notification System**: Centered popup notifications for turn changes, damage (card-based), and events
 - ✅ **Screens**: Title screen with menu navigation, Battle screen
 - ✅ **Callback pattern** for event handling
 - 📖 *See [docs/03_ui_components.md](docs/03_ui_components.md) for details*
@@ -344,8 +345,8 @@ source .venv/bin/activate          # Unnecessary with UV
 
 ---
 
-**Last Updated**: 2025-12-08 (Session 10.1 - Bug Fixes & Enemy Spawning)
-**Version**: 2.4.1 (Random Enemy Squad Generation)
+**Last Updated**: 2025-12-09 (Session 12 - Popup Notification System)
+**Version**: 2.5.0 (Turn Notifications & Card-Based Damage Popups)
 **Target Platform**: Windows/Mac/Linux Desktop
 **Engine**: Pygame CE 2.5.x
 **Python**: 3.10+

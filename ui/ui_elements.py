@@ -1765,3 +1765,206 @@ class Tooltip:
 
         # Blit the tooltip surface to the main screen
         screen.blit(tooltip_surface, (self.rect.x, self.rect.y))
+
+
+class Popup:
+    """
+    Centered popup notification for important game events.
+
+    Used for:
+    - Turn notifications ("Character Name - Turn")
+    - Damage numbers (future)
+    - Attack results (Hit/Miss/Crit) (future)
+    - Status effects (future)
+
+    The popup displays centered on screen with large, prominent text.
+    Can be shown for a specific duration (blocking) or managed manually.
+    """
+
+    def __init__(
+        self,
+        width: int = 600,
+        height: int = 200,
+        bg_color: Tuple[int, int, int] = (15, 15, 25),
+        border_color: Tuple[int, int, int] = (100, 100, 140),
+        text_color: Tuple[int, int, int] = (255, 200, 100),
+        font_size: int = 72,
+        alpha: int = 240
+    ):
+        """
+        Initialize a popup.
+
+        Args:
+            width: Popup width in pixels
+            height: Popup height in pixels
+            bg_color: Background color (RGB)
+            border_color: Border color (RGB)
+            text_color: Text color (RGB)
+            font_size: Font size for main text
+            alpha: Background transparency (0-255, 255=opaque)
+        """
+        self.width = width
+        self.height = height
+        self.bg_color = bg_color
+        self.border_color = border_color
+        self.text_color = text_color
+        self.font_size = font_size
+        self.alpha = alpha
+
+        # Position (centered on screen)
+        self.x = (config.SCREEN_WIDTH - width) // 2
+        self.y = (config.SCREEN_HEIGHT - height) // 2
+        self.rect = pygame.Rect(self.x, self.y, width, height)
+
+        # Content
+        self.title = ""
+        self.subtitle = ""
+
+        # Visual settings
+        self.border_width = 4
+        self.padding = 20
+
+    def set_content(self, title: str, subtitle: str = "") -> None:
+        """
+        Set the popup content.
+
+        Args:
+            title: Main text (large, centered)
+            subtitle: Optional secondary text (smaller, below title)
+        """
+        self.title = title
+        self.subtitle = subtitle
+
+    def show_blocking(self, screen: pygame.Surface, duration_ms: int = 500) -> None:
+        """
+        Show the popup for a specific duration (blocking).
+
+        This pauses game execution while the popup is displayed.
+        Use for turn notifications and other brief alerts.
+
+        Args:
+            screen: Surface to draw on
+            duration_ms: How long to show popup in milliseconds (default 500ms)
+        """
+        # Draw the popup
+        self.draw(screen)
+
+        # Update the display
+        pygame.display.flip()
+
+        # Wait for the specified duration
+        pygame.time.wait(duration_ms)
+
+    def draw(self, screen: pygame.Surface) -> None:
+        """
+        Draw the popup to the screen.
+
+        Args:
+            screen: Surface to draw on
+        """
+        # Create semi-transparent surface
+        popup_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+
+        # Draw background with alpha
+        bg_color_with_alpha = (*self.bg_color, self.alpha)
+        pygame.draw.rect(popup_surface, bg_color_with_alpha, popup_surface.get_rect())
+
+        # Draw border (opaque)
+        pygame.draw.rect(popup_surface, self.border_color, popup_surface.get_rect(), self.border_width)
+
+        # Render title text (large, bold)
+        title_font = pygame.font.Font(None, self.font_size)
+        title_surface = title_font.render(self.title, True, self.text_color)
+        title_rect = title_surface.get_rect(center=(self.width // 2, self.height // 2 - 20))
+
+        # Simulate bold by rendering twice with offset
+        popup_surface.blit(title_surface, title_rect)
+        popup_surface.blit(title_surface, (title_rect.x + 1, title_rect.y))
+
+        # Render subtitle if provided (smaller, below title)
+        if self.subtitle:
+            subtitle_font = pygame.font.Font(None, self.font_size // 2)
+            subtitle_surface = subtitle_font.render(self.subtitle, True, self.text_color)
+            subtitle_rect = subtitle_surface.get_rect(center=(self.width // 2, self.height // 2 + 40))
+            popup_surface.blit(subtitle_surface, subtitle_rect)
+
+        # Blit popup to main screen
+        screen.blit(popup_surface, (self.x, self.y))
+
+    @staticmethod
+    def show_turn_notification(screen: pygame.Surface, unit_name: str, duration_ms: int = 500) -> None:
+        """
+        Convenience method to show a turn notification popup.
+
+        Args:
+            screen: Surface to draw on
+            unit_name: Name of the unit whose turn it is
+            duration_ms: How long to show (default 500ms)
+
+        Example:
+            >>> Popup.show_turn_notification(screen, "Arthur Blackwood")
+        """
+        popup = Popup(
+            width=800,
+            height=250,
+            bg_color=(15, 15, 25),
+            border_color=(100, 200, 100),  # Green for turn notification
+            text_color=(255, 255, 100),     # Yellow text
+            font_size=84,
+            alpha=240
+        )
+        popup.set_content(title=f"{unit_name}", subtitle="TURN")
+        popup.show_blocking(screen, duration_ms)
+
+    @staticmethod
+    def show_damage_notification(screen: pygame.Surface, damage: int, card_name: str = "", duration_ms: int = 300) -> None:
+        """
+        Convenience method to show damage dealt popup (future use).
+
+        Args:
+            screen: Surface to draw on
+            damage: Damage amount
+            card_name: Combat deck card drawn (e.g., "+2", "x2", "NULL", "-1")
+            duration_ms: How long to show (default 300ms)
+
+        Example:
+            >>> Popup.show_damage_notification(screen, damage=12, card_name="+2")
+            >>> Popup.show_damage_notification(screen, damage=0, card_name="NULL")
+            >>> Popup.show_damage_notification(screen, damage=16, card_name="x2")
+        """
+        title = f"{damage} DAMAGE"
+        subtitle = f"{card_name} Card" if card_name else ""
+
+        # Color based on card type
+        if "x2" in card_name.upper() or "X2" in card_name:
+            # Critical hit - gold/yellow
+            border_color = (255, 200, 0)
+            text_color = (255, 255, 0)
+        elif "NULL" in card_name.upper():
+            # Auto-miss - dark red
+            border_color = (150, 50, 50)
+            text_color = (200, 100, 100)
+        elif card_name.startswith("+"):
+            # Positive modifier - bright green
+            border_color = (100, 200, 100)
+            text_color = (150, 255, 150)
+        elif card_name.startswith("-"):
+            # Negative modifier - orange
+            border_color = (200, 150, 50)
+            text_color = (255, 200, 100)
+        else:
+            # Default/+0 - normal red for damage
+            border_color = (200, 100, 100)
+            text_color = (255, 200, 200)
+
+        popup = Popup(
+            width=500,
+            height=200,  # Slightly taller for subtitle
+            bg_color=(15, 15, 25),
+            border_color=border_color,
+            text_color=text_color,
+            font_size=68,
+            alpha=220
+        )
+        popup.set_content(title=title, subtitle=subtitle)
+        popup.show_blocking(screen, duration_ms)

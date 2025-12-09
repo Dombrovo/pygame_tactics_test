@@ -47,6 +47,7 @@ For detailed understanding of specific systems:
    - Button lifecycle (creation, update, event handling, drawing)
    - The callback pattern explained
    - MenuButton inheritance example
+   - Popup notification system (turn changes, damage, events)
    - Creating custom components
 
 4. **[Data Flow & Interaction Patterns](04_data_flow.md)**
@@ -132,6 +133,7 @@ For detailed understanding of specific systems:
 | Understand the stat system | [06_stat_system.md](06_stat_system.md) |
 | Understand action points | [07_action_points_system.md](07_action_points_system.md) |
 | Understand tooltips | [08_terrain_tooltip_system.md](08_terrain_tooltip_system.md) |
+| Understand popup notifications | [03_ui_components.md](03_ui_components.md#popup-class) |
 | Understand equipment system | [09_equipment_system.md](09_equipment_system.md) |
 | Understand enemy AI | [10_enemy_ai_system.md](10_enemy_ai_system.md) |
 | Understand combat deck system | [11_combat_deck_system.md](11_combat_deck_system.md) |
@@ -384,7 +386,7 @@ These docs should be updated when:
 - New components are created
 - Performance characteristics change
 
-Last updated: 2025-12-08 (Enemy AI System added)
+Last updated: 2025-12-09 (Popup Notification System added)
 Version: 0.1.0 (MVP Phase 1 - 99% Complete)
 
 **Note**: CLAUDE.md has been streamlined. For detailed session histories, see [session_archive.md](session_archive.md).

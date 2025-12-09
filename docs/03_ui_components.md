@@ -13,6 +13,8 @@ The `ui/ui_elements.py` module provides reusable UI components:
 5. **ActionButton** - Action bar slot button with hotkey support
 6. **ActionBar** - 10-slot ability/action bar for battle screen
 7. **TurnOrderTracker** - Visual turn order sequence display for battle screen
+8. **Tooltip** - Contextual hover tooltip with multi-line content
+9. **Popup** - Centered notification popup for turn changes, damage, and events
 
 ---
 
@@ -1111,6 +1113,287 @@ The tracker automatically:
 - **Top position** - Prime screen real estate for critical turn order info
 - **Mini health bars** - Quick health assessment without cluttering icons
 - **Golden highlight** - Makes current turn info stand out
+
+---
+
+## Popup Class
+
+### Purpose
+
+The Popup class provides **centered, blocking notifications** for important game events:
+- Turn notifications (character name + "TURN")
+- Damage dealt with combat card modifiers (future)
+- Attack results (Hit/Miss) (future)
+- Victory/Defeat screens (future)
+
+**Key characteristics:**
+- **Centered display** - Always appears in center of screen
+- **Blocking execution** - Pauses game for specified duration (e.g., 500ms)
+- **Semi-transparent** - Shows game state underneath
+- **Card-aware** - Color-codes based on combat deck cards drawn
+
+### Anatomy of a Popup
+
+```python
+# Static convenience method for turn notifications
+Popup.show_turn_notification(screen, "Arthur Blackwood", duration_ms=500)
+
+# Custom popup for specific events
+popup = Popup(
+    width=600,
+    height=200,
+    bg_color=(15, 15, 25),
+    border_color=(100, 200, 100),
+    text_color=(255, 255, 100),
+    font_size=72,
+    alpha=240
+)
+popup.set_content(title="VICTORY!", subtitle="All enemies defeated")
+popup.show_blocking(screen, duration_ms=1500)
+```
+
+### Internal Structure
+
+```python
+class Popup:
+    # Dimensions and position (centered)
+    self.width = width
+    self.height = height
+    self.x = (SCREEN_WIDTH - width) // 2  # Centered X
+    self.y = (SCREEN_HEIGHT - height) // 2  # Centered Y
+
+    # Visual styling
+    self.bg_color = (15, 15, 25)  # Dark background
+    self.border_color = (100, 100, 140)  # Border color
+    self.text_color = (255, 200, 100)  # Golden text
+    self.alpha = 240  # Semi-transparent (0-255)
+
+    # Content
+    self.title = ""  # Large main text
+    self.subtitle = ""  # Smaller text below title
+```
+
+### How It Works
+
+**Blocking Display Pattern:**
+1. Draw the popup over current screen
+2. Flip display to show popup
+3. Wait for specified duration (pygame.time.wait)
+4. Game resumes after wait
+
+```python
+def show_blocking(self, screen, duration_ms=500):
+    # Draw popup on current screen
+    self.draw(screen)
+
+    # Update display to show popup
+    pygame.display.flip()
+
+    # Pause execution for duration
+    pygame.time.wait(duration_ms)
+```
+
+**Why blocking?**
+- Ensures player sees the notification
+- Simple implementation (no queue management)
+- Acceptable for short durations (0.3-1.0 seconds)
+- Creates natural pacing for turn-based combat
+
+### Static Convenience Methods
+
+#### Turn Notifications
+
+```python
+@staticmethod
+def show_turn_notification(screen, unit_name, duration_ms=500):
+    """Shows 'Unit Name' + 'TURN' with green border."""
+    popup = Popup(
+        width=800,
+        height=250,
+        border_color=(100, 200, 100),  # Green
+        text_color=(255, 255, 100),     # Yellow
+        font_size=84
+    )
+    popup.set_content(title=unit_name, subtitle="TURN")
+    popup.show_blocking(screen, duration_ms)
+```
+
+**Usage in battle_screen.py:**
+```python
+# Initial turn at battle start (line 1335)
+if self.current_turn_unit:
+    Popup.show_turn_notification(self.screen, self.current_turn_unit.name)
+
+# Turn transitions (line 892)
+Popup.show_turn_notification(self.screen, self.current_turn_unit.name)
+```
+
+#### Damage Notifications (Card-Based)
+
+```python
+@staticmethod
+def show_damage_notification(screen, damage, card_name="", duration_ms=300):
+    """Shows damage with combat card modifier."""
+    title = f"{damage} DAMAGE"
+    subtitle = f"{card_name} Card" if card_name else ""
+
+    # Color based on card type
+    if "x2" in card_name:
+        border_color = (255, 200, 0)  # Gold for crits
+    elif "NULL" in card_name:
+        border_color = (150, 50, 50)  # Dark red for miss
+    elif card_name.startswith("+"):
+        border_color = (100, 200, 100)  # Green for positive
+    elif card_name.startswith("-"):
+        border_color = (200, 150, 50)  # Orange for negative
+    else:
+        border_color = (200, 100, 100)  # Red for normal
+```
+
+**Card Type Color Coding:**
+- **x2** (Critical): Gold border, yellow text
+- **NULL** (Auto-miss): Dark red border, dim red text
+- **+2, +1** (Positive): Green border, bright green text
+- **-1** (Negative): Orange border, orange text
+- **+0** (Neutral): Red border, light red text
+
+**Future usage in combat_resolver.py:**
+```python
+# When attack resolves
+card = attacker.draw_combat_card()
+final_damage = card.apply_to_damage(base_damage)
+
+Popup.show_damage_notification(
+    screen,
+    damage=final_damage,
+    card_name=card.name  # "+2", "x2", "NULL", etc.
+)
+```
+
+### Integration Points
+
+**Battle Screen Initialization (battle_screen.py:1330-1336):**
+```python
+# Draw initial frame first so battle screen is visible
+self.draw()
+pygame.display.flip()
+
+# Show first turn notification (after screen renders)
+if self.current_turn_unit:
+    Popup.show_turn_notification(self.screen, self.current_turn_unit.name)
+```
+
+**Turn Advancement (battle_screen.py:890-892):**
+```python
+# Show turn notification popup (0.5 seconds)
+# Makes turn transitions visible, especially for fast enemy turns
+Popup.show_turn_notification(self.screen, self.current_turn_unit.name)
+```
+
+### Design Decisions
+
+**Why center screen?**
+- Guarantees visibility regardless of UI layout
+- Natural focus point
+- Can't be missed during fast enemy turns
+
+**Why blocking instead of non-blocking?**
+- Simpler implementation (no queue or state management)
+- Natural pacing for turn-based game
+- Short durations (0.5s) don't feel like delays
+- Ensures player sees notification before action occurs
+
+**Why semi-transparent?**
+- Shows game state underneath
+- Less jarring than opaque popup
+- Maintains visual context
+
+**Why card-based colors?**
+- Instant visual feedback on roll quality
+- Gold = exciting (crit)
+- Green = good (bonus)
+- Red = bad (miss)
+- Matches combat deck system design
+
+### Example: Full Turn Flow
+
+```python
+# 1. Player clicks "End Turn" or presses Space
+# 2. _advance_turn() called
+
+# 3. Find next active unit
+self.current_turn_index = next_index
+self.current_turn_unit = next_unit
+
+# 4. Show popup BEFORE doing anything else
+Popup.show_turn_notification(self.screen, self.current_turn_unit.name, 500)
+# Game pauses here for 0.5 seconds
+
+# 5. Update UI for new turn
+self.selected_unit = self.current_turn_unit
+self._update_action_bar()
+self._update_tile_selection()
+
+# 6. If enemy, execute AI
+if self.current_turn_unit.team == "enemy":
+    enemy_ai.execute_enemy_turn(...)
+    self._advance_turn()  # Auto-advance after enemy acts
+```
+
+### Future Enhancements
+
+**Phase 1.5 (Combat Resolution):**
+- Hit/Miss notifications
+- Damage popups with card integration
+- Sanity damage notifications
+
+**Phase 2+:**
+- Ability activation popups
+- Status effect gained/removed
+- Level up notifications
+- Trait gained popups
+- Non-blocking queue system for rapid events
+
+**Phase 5 (Polish):**
+- Animation (fade in/out instead of instant appear)
+- Particle effects around border
+- Sound effects on popup
+- Different popup sizes/positions for different event types
+
+### Testing
+
+**Test file:** `testing/test_popup.py`
+
+Tests all popup variants:
+1. ✅ Turn notifications (player & enemy)
+2. ✅ Damage with +2 card (green)
+3. ✅ Damage with +0 card (red)
+4. ✅ Damage with -1 card (orange)
+5. ✅ Critical hit with x2 card (gold)
+6. ✅ Auto-miss with NULL card (dark red)
+7. ✅ Custom victory popup
+
+**Run tests:**
+```bash
+uv run python testing/test_popup.py
+```
+
+### Why This Design?
+
+**Advantages:**
+1. **Clarity** - Turn changes are now visible, not instant
+2. **Pacing** - 0.5s pause creates rhythm in combat
+3. **Feedback** - Card colors give instant quality feedback
+4. **Extensibility** - Easy to add new notification types
+5. **Simplicity** - Blocking implementation is straightforward
+6. **Combat deck integration** - Color coding reinforces card system
+
+**Design decisions:**
+- **Blocking vs non-blocking** - Blocking simpler for 0.5s waits
+- **Card-based colors** - Matches Gloomhaven-style deck design
+- **Center position** - Guarantees visibility
+- **Semi-transparent** - Shows context underneath
+- **Large text** - Readable during fast enemy turns
 
 ---
 

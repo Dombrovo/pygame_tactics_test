@@ -16,7 +16,7 @@ from combat import enemy_ai
 from entities.unit import Unit
 from entities.investigator import Investigator, create_test_squad
 from entities.enemy import Enemy, create_test_enemies
-from ui.ui_elements import InvestigatorTile, ActionBar, Button, TurnOrderTracker, ActionPointsDisplay, Tooltip
+from ui.ui_elements import InvestigatorTile, ActionBar, Button, TurnOrderTracker, ActionPointsDisplay, Tooltip, Popup
 
 
 class BattleScreen:
@@ -887,6 +887,10 @@ class BattleScreen:
             print("No active units remaining")
             return
 
+        # Show turn notification popup (0.5 seconds)
+        # This makes turn transitions visible, especially for fast enemy turns
+        Popup.show_turn_notification(self.screen, self.current_turn_unit.name, duration_ms=500)
+
         # Auto-select the current turn unit for viewing
         self.selected_unit = self.current_turn_unit
 
@@ -911,6 +915,14 @@ class BattleScreen:
         if self.current_turn_unit.team == "enemy":
             # Execute enemy AI behavior
             enemy_ai.execute_enemy_turn(self.current_turn_unit, self.player_units, self.grid)
+
+            # Redraw the screen to show the enemy's movement immediately
+            self.draw()
+            pygame.display.flip()
+
+            # Pause to let player see the enemy's action
+            # This prevents rapid-fire turn notifications during consecutive enemy turns
+            pygame.time.wait(800)  # 800ms pause after enemy action
 
             # After AI completes its actions, advance to next turn
             self._advance_turn()
@@ -1322,6 +1334,14 @@ class BattleScreen:
             Next screen to display
         """
         print(f"Battle Started! Turn {self.turn_number} - {self.current_phase}")
+
+        # Draw the initial frame first so the battle screen is visible
+        self.draw()
+        pygame.display.flip()
+
+        # Now show initial turn notification (after screen is rendered)
+        if self.current_turn_unit:
+            Popup.show_turn_notification(self.screen, self.current_turn_unit.name, duration_ms=500)
 
         while self.running:
             self.handle_events()
