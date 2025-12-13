@@ -1,13 +1,14 @@
 # Enemy AI System Documentation
 
 **Created**: 2025-12-08 (Session 10)
-**Status**: ✅ Complete
+**Updated**: 2025-12-13 (Session 14 - Attack Logic Added)
+**Status**: ✅ Complete (Movement + Attacks)
 
 ---
 
 ## Overview
 
-The enemy AI system implements basic tactical movement behaviors for enemy units during their turns in tactical combat. Different enemy types use different strategies to approach and engage player investigators. The system also includes randomized squad generation to provide variety across battles.
+The enemy AI system implements tactical combat behaviors for enemy units during their turns. Different enemy types use different strategies to approach and engage player investigators, moving toward targets and attacking when in range. The system integrates with the combat resolution system to handle full attack sequences including line of sight checks, hit chance calculation, and damage application. The system also includes randomized squad generation to provide variety across battles.
 
 ---
 
@@ -26,6 +27,7 @@ The enemy AI system implements basic tactical movement behaviors for enemy units
 
 **Targeting Strategy**: Targets investigator with **highest current health**
 **Movement**: Moves **1 tile** towards target per turn
+**Attack**: After moving, attacks target if in range (3 tiles) with line of sight
 
 **Rationale**: Cultists use conservative tactics, focusing fire on healthy targets rather than finishing off wounded ones. This creates pressure on the player's strongest units.
 
@@ -33,6 +35,7 @@ The enemy AI system implements basic tactical movement behaviors for enemy units
 
 **Targeting Strategy**: Targets **nearest** investigator
 **Movement**: Moves **2 tiles** towards target per turn
+**Attack**: After moving, attacks target if in range (1 tile) with line of sight
 
 **Rationale**: Hounds use aggressive pack tactics, rapidly closing distance with the nearest prey using their superior speed.
 
@@ -203,7 +206,7 @@ move_to = calculate_movement_target(cultist, target, grid, 1)
 
 ---
 
-#### `execute_enemy_turn(enemy: Enemy, investigators: List[Investigator], grid: Grid) -> None`
+#### `execute_enemy_turn(enemy: Enemy, investigators: List[Investigator], grid: Grid) -> Optional[Dict[str, Any]]`
 
 Main AI entry point - executes an enemy unit's turn.
 
@@ -212,15 +215,16 @@ Main AI entry point - executes an enemy unit's turn.
 2. Select target based on enemy type
 3. Calculate movement destination
 4. Execute movement via `grid.move_unit()`
-5. Print turn information to console
-6. **(Future)** Attack if target in range
+5. Check if target is in range with line of sight
+6. If yes, execute attack via `combat_resolver.resolve_attack()`
+7. Print turn information to console
 
 **Parameters**:
 - `enemy`: The enemy unit taking its turn
 - `investigators`: List of all investigator units (for targeting)
 - `grid`: The battlefield grid
 
-**Returns**: None (modifies game state directly)
+**Returns**: Attack result dictionary if attack was executed (for popup display), None otherwise
 
 **Console Output**:
 ```
@@ -228,6 +232,7 @@ Enemy Turn: Hound Alpha
   Hound Alpha targeting nearest investigator
   Target: Regina Cross (HP: 12/15)
   Hound Alpha moves from (9, 7) to (7, 6)
+  Hound Alpha attacking Regina Cross...
 ```
 
 ---
@@ -236,13 +241,31 @@ Enemy Turn: Hound Alpha
 
 The AI is called automatically during enemy turns in the turn order system.
 
-**Location**: `combat/battle_screen.py`, `_advance_turn()` method (lines 910-916)
+**Location**: `combat/battle_screen.py`, `_advance_turn()` method (lines 1105-1128)
 
 ```python
 # If enemy turn, execute AI
 if self.current_turn_unit.team == "enemy":
-    # Execute enemy AI behavior
-    enemy_ai.execute_enemy_turn(self.current_turn_unit, self.player_units, self.grid)
+    # Execute enemy AI behavior (move + attack)
+    attack_result = enemy_ai.execute_enemy_turn(self.current_turn_unit, self.player_units, self.grid)
+
+    # Redraw the screen to show the enemy's movement immediately
+    self.draw()
+    pygame.display.flip()
+
+    # Pause to let player see the enemy's movement
+    pygame.time.wait(500)  # 500ms pause after movement
+
+    # If enemy attacked, show attack result popup
+    if attack_result:
+        target_unit = attack_result.get("target")
+        if target_unit:
+            self._show_attack_result(attack_result, target_unit)
+            # Redraw to show any changes from attack (HP, incapacitation)
+            self.draw()
+            pygame.display.flip()
+            # Additional pause after attack
+            pygame.time.wait(500)  # 500ms pause after attack
 
     # After AI completes its actions, advance to next turn
     self._advance_turn()
@@ -253,9 +276,10 @@ if self.current_turn_unit.team == "enemy":
 2. `_advance_turn()` called (via End Turn button or Space key)
 3. Next unit in turn order becomes active
 4. If enemy unit, AI executes immediately
-5. AI completes movement
-6. `_advance_turn()` called again automatically
-7. Next unit's turn begins
+5. AI completes movement → screen redraws → 500ms pause
+6. AI attempts attack if in range → damage popup shown → 500ms pause
+7. `_advance_turn()` called again automatically
+8. Next unit's turn begins
 
 ---
 
@@ -330,27 +354,48 @@ ALL TESTS PASSED!
 
 ---
 
-## Future Enhancements
+## Attack System Integration
 
-### Phase 1.5 - Attack Logic
+### ✅ Implemented Attack Logic (Session 14)
 
-After movement, enemies should check if targets are in range and attack:
+After movement, enemies check if targets are in range and attack:
 
 ```python
-# TODO in execute_enemy_turn() (line 208)
-if enemy.can_attack():
-    # Check if target is in weapon range
-    distance = grid.get_distance(enemy.position[0], enemy.position[1],
-                                target.position[0], target.position[1])
+# In execute_enemy_turn() after movement completes
+if not enemy.position or not target.position:
+    return None
 
-    if distance <= enemy.weapon_range:
-        # Check line of sight (requires line_of_sight.py)
-        if line_of_sight.has_clear_shot(enemy.position, target.position, grid):
-            # Execute attack (requires combat_resolver.py)
-            combat_resolver.resolve_attack(enemy, target, grid)
+# Check if target is within attack range and has line of sight
+can_attack_result, reason = can_attack(
+    enemy.position,
+    target.position,
+    enemy.weapon_range,
+    grid
+)
+
+if can_attack_result:
+    # Target is in range with LOS - execute attack!
+    print(f"  {enemy.name} attacking {target.name}...")
+    attack_result = resolve_attack(enemy, target, grid)
+
+    # Add attacker and target info to result for popup display
+    attack_result["attacker"] = enemy
+    attack_result["target"] = target
+
+    return attack_result
+else:
+    # Can't attack (out of range or no LOS)
+    print(f"  {enemy.name} cannot attack: {reason}")
+    return None
 ```
 
-### Phase 2+ - Advanced AI
+**Attack Result Display**:
+- Damage popups shown via `Popup.show_damage_notification()`
+- No combat cards for enemies (investigators-only feature)
+- Hit/miss displayed with damage amount
+- Incapacitation notifications shown if target dies
+
+### Future Enhancements - Phase 2+ Advanced AI
 
 **Tactical Improvements**:
 - Use cover (prefer moving to cover tiles)
@@ -462,6 +507,6 @@ def create_shoggoth_encounter() -> List[Enemy]:
 
 ---
 
-**Last Updated**: 2025-12-08 (Session 10.1)
+**Last Updated**: 2025-12-13 (Session 14 - Attack Logic Implementation)
 **Author**: Claude Sonnet 4.5
-**Status**: Production Ready
+**Status**: Production Ready (Movement + Attacks Complete)

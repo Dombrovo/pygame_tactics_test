@@ -1935,25 +1935,25 @@ class Popup:
         title = f"{damage} DAMAGE"
         subtitle = f"{card_name} Card" if card_name else ""
 
-        # Color based on card type
-        if "x2" in card_name.upper() or "X2" in card_name:
+        # Color based on card type (check if card_name is not None)
+        if card_name and ("x2" in card_name.upper() or "X2" in card_name):
             # Critical hit - gold/yellow
             border_color = (255, 200, 0)
             text_color = (255, 255, 0)
-        elif "NULL" in card_name.upper():
+        elif card_name and "NULL" in card_name.upper():
             # Auto-miss - dark red
             border_color = (150, 50, 50)
             text_color = (200, 100, 100)
-        elif card_name.startswith("+"):
+        elif card_name and card_name.startswith("+"):
             # Positive modifier - bright green
             border_color = (100, 200, 100)
             text_color = (150, 255, 150)
-        elif card_name.startswith("-"):
+        elif card_name and card_name.startswith("-"):
             # Negative modifier - orange
             border_color = (200, 150, 50)
             text_color = (255, 200, 100)
         else:
-            # Default/+0 - normal red for damage
+            # Default/+0 - normal red for damage (or enemy attack without card)
             border_color = (200, 100, 100)
             text_color = (255, 200, 200)
 

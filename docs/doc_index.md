@@ -98,15 +98,16 @@ For detailed understanding of specific systems:
    - Automatic weapon assignment
    - Testing and usage examples
 
-10. **[Enemy AI System](10_enemy_ai_system.md)**
+10. **[Enemy AI System](10_enemy_ai_system.md)** ⭐ UPDATED - ATTACKS COMPLETE!
    - AI targeting strategies (highest health vs nearest)
    - Movement behaviors (Cultists 1 tile, Hounds 2 tiles)
+   - Attack implementation (range check, LOS, damage application)
    - Pathfinding integration (A* to adjacent tiles)
-   - Battle screen integration
+   - Battle screen integration with attack popups
    - Testing and debugging
-   - Future enhancements (attack logic, advanced tactics)
+   - Future enhancements (advanced tactics, cover usage)
 
-11. **[Combat Deck System](11_combat_deck_system.md)** ⭐ NEW
+11. **[Combat Deck System](11_combat_deck_system.md)**
    - Personal deck-based combat resolution (Gloomhaven-style)
    - Card system (NULL, x2, +2, +1, -1, +0)
    - Standard 20-card deck composition
@@ -115,6 +116,15 @@ For detailed understanding of specific systems:
    - Deck improvement and progression
    - Usage in attack resolution
    - Testing and examples
+
+12. **[Attack System](12_attack_system.md)** ⭐ NEW - MVP COMPLETE!
+   - Line of sight calculation (Bresenham's algorithm)
+   - Combat resolution (hit chance, D100 rolls, damage)
+   - Attack UI (mode activation, red tile highlighting)
+   - Battle screen integration (attack button, grid clicks)
+   - Attack result popups and feedback
+   - Comprehensive testing (11 tests, all passing)
+   - Enemy turn timing fix
 
 ---
 
@@ -137,6 +147,7 @@ For detailed understanding of specific systems:
 | Understand equipment system | [09_equipment_system.md](09_equipment_system.md) |
 | Understand enemy AI | [10_enemy_ai_system.md](10_enemy_ai_system.md) |
 | Understand combat deck system | [11_combat_deck_system.md](11_combat_deck_system.md) |
+| Understand attack system | [12_attack_system.md](12_attack_system.md) |
 | See complete click flow | [04_data_flow.md](04_data_flow.md#mouse-click-flow---detailed) |
 | Add a new menu option | [02_architecture_overview.md](02_architecture_overview.md#adding-a-new-screen) |
 | Add a new enemy type | [05_grid_and_battle_system.md](05_grid_and_battle_system.md#enemy-classes) |
@@ -147,6 +158,8 @@ For detailed understanding of specific systems:
 | Create tooltips | [08_terrain_tooltip_system.md](08_terrain_tooltip_system.md#creating-tooltips) |
 | Use combat decks | [11_combat_deck_system.md](11_combat_deck_system.md#usage-in-combat-resolution) |
 | Improve decks | [11_combat_deck_system.md](11_combat_deck_system.md#deck-progression-system-phase-2) |
+| Implement line of sight | [12_attack_system.md](12_attack_system.md#line-of-sight-system) |
+| Resolve attacks | [12_attack_system.md](12_attack_system.md#combat-resolution-system) |
 
 ### Code Files (with extensive comments)
 
@@ -159,6 +172,8 @@ All code files have been extensively commented:
 - **[ui/settings_screen.py](../ui/settings_screen.py)** - Settings menu
 - **[combat/grid.py](../combat/grid.py)** - Grid and Tile system with cover mechanics
 - **[combat/battle_screen.py](../combat/battle_screen.py)** - Battle UI, emoji font system, and rendering
+- **[combat/line_of_sight.py](../combat/line_of_sight.py)** - Bresenham's algorithm, LOS calculations, valid target detection
+- **[combat/combat_resolver.py](../combat/combat_resolver.py)** - Hit chance, attack resolution, damage application
 - **[combat/enemy_ai.py](../combat/enemy_ai.py)** - Enemy AI targeting and movement behaviors
 - **[entities/unit.py](../entities/unit.py)** - Base unit class with stat system + equipment
 - **[entities/investigator.py](../entities/investigator.py)** - Player units with random names + weapons + combat decks
@@ -364,8 +379,12 @@ The system is designed to be extended:
 
 ### Development History
 
-- **[session_archive.md](session_archive.md)** - Complete development sessions archive (Sessions 2-10)
+- **[session_archive.md](session_archive.md)** - Complete development sessions archive (Sessions 2-14)
   - Comprehensive details on all features implemented
+  - **Session 14: Enemy AI Attacks** ✅ AI ATTACKS COMPLETE
+  - **Session 13: Attack System Implementation** ✅ MVP COMPLETE
+  - Session 12: Popup Notification System
+  - Session 11: Combat Deck System
   - Session 10: Enemy AI System
   - Session 9: Equipment & Inventory System
   - Session 8: Terrain Tooltip System
@@ -386,8 +405,8 @@ These docs should be updated when:
 - New components are created
 - Performance characteristics change
 
-Last updated: 2025-12-09 (Popup Notification System added)
-Version: 0.1.0 (MVP Phase 1 - 99% Complete)
+Last updated: 2025-12-13 (Enemy AI Attacks - Session 14)
+Version: 3.1.0 (✅ MVP Phase 1 - COMPLETE with Enemy AI Attacks!)
 
 **Note**: CLAUDE.md has been streamlined. For detailed session histories, see [session_archive.md](session_archive.md).
 

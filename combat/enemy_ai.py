@@ -7,12 +7,14 @@ Different enemy types have different movement and targeting behaviors:
 - Hounds: Move 2 tiles towards nearest investigator
 """
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any
 from entities.unit import Unit
 from entities.investigator import Investigator
 from entities.enemy import Enemy, Cultist, HoundOfTindalos
 from combat.grid import Grid
 from combat.pathfinding import find_path
+from combat.line_of_sight import can_attack
+from combat.combat_resolver import resolve_attack
 
 
 def find_highest_health_target(investigators: List[Investigator]) -> Optional[Investigator]:
@@ -152,20 +154,22 @@ def calculate_movement_target(enemy: Enemy, target: Unit, grid: Grid, max_tiles:
     return destination
 
 
-def execute_enemy_turn(enemy: Enemy, investigators: List[Investigator], grid: Grid) -> None:
+def execute_enemy_turn(enemy: Enemy, investigators: List[Investigator], grid: Grid) -> Optional[Dict[str, Any]]:
     """
     Execute AI behavior for an enemy unit's turn.
 
     Different enemy types have different behaviors:
-    - Cultists: Move 1 tile towards investigator with highest health
-    - Hounds: Move 2 tiles towards nearest investigator
-
-    Future: Will also include attack logic after movement.
+    - Cultists: Move 1 tile towards investigator with highest health, then attack if in range
+    - Hounds: Move 2 tiles towards nearest investigator, then attack if in range
 
     Args:
         enemy: The enemy unit taking its turn
         investigators: List of all investigator units (for targeting)
         grid: The battlefield grid
+
+    Returns:
+        Dictionary with attack result if attack was made, None otherwise.
+        Result format matches combat_resolver.resolve_attack() return value.
     """
     if not enemy.can_act():
         # Enemy is incapacitated, skip turn
@@ -205,5 +209,30 @@ def execute_enemy_turn(enemy: Enemy, investigators: List[Investigator], grid: Gr
     else:
         print(f"  {enemy.name} cannot move (no valid path)")
 
-    # TODO: Attack logic (Phase 1.5 - after combat resolution is implemented)
-    # After moving, check if target is in range and attack if possible
+    # Attack logic: After moving, check if target is in range and attack if possible
+    if not enemy.position or not target.position:
+        # No position (shouldn't happen, but safety check)
+        return None
+
+    # Check if target is within attack range and has line of sight
+    can_attack_result, reason = can_attack(
+        enemy.position,
+        target.position,
+        enemy.weapon_range,
+        grid
+    )
+
+    if can_attack_result:
+        # Target is in range with LOS - execute attack!
+        print(f"  {enemy.name} attacking {target.name}...")
+        attack_result = resolve_attack(enemy, target, grid)
+
+        # Add attacker and target info to result for popup display
+        attack_result["attacker"] = enemy
+        attack_result["target"] = target
+
+        return attack_result
+    else:
+        # Can't attack (out of range or no LOS)
+        print(f"  {enemy.name} cannot attack: {reason}")
+        return None

@@ -13,6 +13,8 @@ from combat.grid import Grid
 from combat.pathfinding import find_path, get_reachable_tiles
 from combat.terrain_generator import generate_random_terrain
 from combat import enemy_ai
+from combat import combat_resolver
+from combat.line_of_sight import get_valid_attack_targets
 from entities.unit import Unit
 from entities.investigator import Investigator, create_test_squad
 from entities.enemy import Enemy, create_test_enemies
@@ -89,6 +91,11 @@ class BattleScreen:
         self.reachable_tiles: Set[Tuple[int, int]] = set()  # Valid movement destinations for current turn unit
         self.show_movement_range = False  # Whether to show movement highlights
         self.movement_mode_active = False  # Whether Move action is currently selected
+
+        # Attack state
+        self.valid_targets: Set[Tuple[int, int]] = set()  # Valid attack target positions
+        self.show_attack_range = False  # Whether to show attack range highlights
+        self.attack_mode_active = False  # Whether Attack action is currently selected
 
         # Calculate grid rendering offset (center on screen)
         self.grid_pixel_size = config.GRID_SIZE * config.TILE_SIZE
@@ -467,7 +474,13 @@ class BattleScreen:
         if tile.is_occupied():
             unit = tile.occupied_by
 
-            # Select any unit (player or enemy) to view stats
+            # Check if attack mode is active and this is a valid target
+            if self.attack_mode_active and (grid_x, grid_y) in self.valid_targets:
+                # Attack the target!
+                self._try_attack_target(grid_x, grid_y)
+                return
+
+            # Otherwise, select the unit to view stats
             self.selected_unit = unit
 
             # Update investigator tile selection (only highlights if player unit)
@@ -478,6 +491,9 @@ class BattleScreen:
 
             # Clear movement mode when selecting a unit (requires re-activating Move action)
             self.deactivate_movement_mode()
+
+            # Clear attack mode when selecting a unit
+            self.deactivate_attack_mode()
 
             # Print team indicator for clarity
             team_indicator = "Player" if unit.team == "player" else "Enemy"
@@ -558,6 +574,109 @@ class BattleScreen:
             print(f"Failed to move unit")
             return False
 
+    def _try_attack_target(self, target_x: int, target_y: int) -> bool:
+        """
+        Attempt to attack enemy unit at target tile.
+
+        Args:
+            target_x: Target grid X coordinate
+            target_y: Target grid Y coordinate
+
+        Returns:
+            True if attack was successful, False otherwise
+        """
+        # Can only attack if:
+        # 1. Attack mode is active (Attack button was clicked)
+        # 2. It's a player unit's turn
+        # 3. Unit can still attack this turn
+        # 4. Target position is valid
+
+        # Check if attack mode is active
+        if not self.attack_mode_active:
+            return False
+
+        if not self.current_turn_unit:
+            return False
+
+        # Only allow player units to attack
+        if self.current_turn_unit.team != "player":
+            return False
+
+        # Check if unit can still attack
+        if not self.current_turn_unit.can_attack():
+            print(f"{self.current_turn_unit.name} cannot attack (no action points remaining)")
+            return False
+
+        # Check if target is valid
+        if (target_x, target_y) not in self.valid_targets:
+            return False
+
+        # Get target unit
+        tile = self.grid.get_tile(target_x, target_y)
+        if not tile or not tile.is_occupied():
+            return False
+
+        target_unit = tile.occupied_by
+
+        # Execute the attack using combat resolver
+        result = combat_resolver.resolve_attack(
+            self.current_turn_unit,
+            target_unit,
+            self.grid
+        )
+
+        # Show attack result popup
+        self._show_attack_result(result, target_unit)
+
+        # Mark unit as having attacked
+        self.current_turn_unit.has_attacked = True
+
+        # Update UI
+        self._update_action_bar()
+        self._update_action_points_display()
+        self._update_attack_targets()  # Recalculate in case targets changed
+
+        # Deactivate attack mode after attacking
+        self.deactivate_attack_mode()
+
+        return True
+
+    def _show_attack_result(self, result: dict, target_unit: Unit):
+        """
+        Display attack result using popup notification.
+
+        Args:
+            result: Attack result dictionary from combat_resolver
+            target_unit: The target that was attacked
+        """
+        # Check if attack was valid
+        if not result.get("valid", False):
+            reason = result.get("reason", "unknown")
+            Popup.show_damage_notification(self.screen, 0, f"MISS - {reason}")
+            return
+
+        # Check if attack hit
+        if not result.get("hit", False):
+            # Miss
+            card_name = result.get("card_drawn", "")
+            if card_name:
+                Popup.show_damage_notification(self.screen, 0, f"MISS ({card_name})")
+            else:
+                Popup.show_damage_notification(self.screen, 0, "MISS")
+            return
+
+        # Hit! Show damage
+        damage = result.get("damage_dealt", 0)
+        card_name = result.get("card_drawn", "")
+
+        # Show damage popup
+        Popup.show_damage_notification(self.screen, damage, card_name, duration_ms=600)
+
+        # If target was killed, show additional notification
+        if result.get("target_killed", False):
+            pygame.time.wait(300)  # Brief pause between popups
+            Popup.show_turn_notification(self.screen, f"{target_unit.name} INCAPACITATED", duration_ms=800)
+
     def _update_movement_range(self):
         """
         Calculate the set of reachable tiles for the current turn unit.
@@ -632,6 +751,76 @@ class BattleScreen:
         self.movement_mode_active = False
         self.show_movement_range = False
 
+    def activate_attack_mode(self):
+        """
+        Activate attack mode - shows red tile highlights for valid attack targets.
+
+        Called when player clicks the Attack action button.
+        """
+        # Can only activate if current turn unit can attack
+        if not self.current_turn_unit:
+            return
+
+        if self.current_turn_unit.team != "player":
+            return
+
+        if not self.current_turn_unit.can_attack():
+            print(f"{self.current_turn_unit.name} cannot attack this turn")
+            return
+
+        # Calculate valid attack targets
+        self._update_attack_targets()
+
+        if not self.valid_targets:
+            print(f"{self.current_turn_unit.name} has no valid targets in range")
+            return
+
+        # Deactivate movement mode if active
+        self.deactivate_movement_mode()
+
+        # Activate attack mode
+        self.attack_mode_active = True
+        self.show_attack_range = True
+
+        print(f"Attack mode activated - {len(self.valid_targets)} valid targets")
+
+    def deactivate_attack_mode(self):
+        """
+        Deactivate attack mode - hides red tile highlights.
+
+        Called when:
+        - Attack is completed
+        - Turn ends
+        - Player cancels attack
+        """
+        self.attack_mode_active = False
+        self.show_attack_range = False
+
+    def _update_attack_targets(self):
+        """
+        Calculate valid attack targets for current turn unit.
+
+        Updates self.valid_targets with positions of enemies that can be attacked.
+        """
+        self.valid_targets.clear()
+
+        if not self.current_turn_unit or not self.current_turn_unit.position:
+            return
+
+        # Get weapon range
+        weapon_range = self.current_turn_unit.weapon_range
+
+        # Determine target team (player attacks enemies, enemies attack players)
+        target_team = "enemy" if self.current_turn_unit.team == "player" else "player"
+
+        # Get all valid attack targets using line_of_sight module
+        self.valid_targets = set(get_valid_attack_targets(
+            self.current_turn_unit.position,
+            weapon_range,
+            self.grid,
+            target_team
+        ))
+
     def _on_action_button_click(self, slot_index: int):
         """
         Handle action button clicks from the action bar.
@@ -645,7 +834,7 @@ class BattleScreen:
 
         # Slot 1 = Attack action
         elif slot_index == 1:
-            print("Attack action clicked (not yet implemented)")
+            self.activate_attack_mode()
 
         # Slots 2-9 = Future abilities
         else:
@@ -900,6 +1089,7 @@ class BattleScreen:
         self._update_action_points_display()
         self._update_movement_range()  # Calculate movement range for new turn
         self.deactivate_movement_mode()  # Clear any active movement mode from previous turn
+        self.deactivate_attack_mode()  # Clear any active attack mode from previous turn
 
         # Update turn order tracker with new current turn index
         self.turn_order_tracker.update_turn_order(self.turn_order, self.current_turn_index)
@@ -913,16 +1103,26 @@ class BattleScreen:
 
         # If enemy turn, execute AI
         if self.current_turn_unit.team == "enemy":
-            # Execute enemy AI behavior
-            enemy_ai.execute_enemy_turn(self.current_turn_unit, self.player_units, self.grid)
+            # Execute enemy AI behavior (move + attack)
+            attack_result = enemy_ai.execute_enemy_turn(self.current_turn_unit, self.player_units, self.grid)
 
             # Redraw the screen to show the enemy's movement immediately
             self.draw()
             pygame.display.flip()
 
-            # Pause to let player see the enemy's action
-            # This prevents rapid-fire turn notifications during consecutive enemy turns
-            pygame.time.wait(800)  # 800ms pause after enemy action
+            # Pause to let player see the enemy's movement
+            pygame.time.wait(500)  # 500ms pause after movement
+
+            # If enemy attacked, show attack result popup
+            if attack_result:
+                target_unit = attack_result.get("target")
+                if target_unit:
+                    self._show_attack_result(attack_result, target_unit)
+                    # Redraw to show any changes from attack (HP, incapacitation)
+                    self.draw()
+                    pygame.display.flip()
+                    # Additional pause after attack
+                    pygame.time.wait(500)  # 500ms pause after attack
 
             # After AI completes its actions, advance to next turn
             self._advance_turn()
@@ -1164,8 +1364,15 @@ class BattleScreen:
                 # Check if this tile is reachable (for movement highlighting)
                 is_reachable = self.show_movement_range and (x, y) in self.reachable_tiles
 
-                # Tile background color based on terrain and reachability
-                if is_reachable:
+                # Check if this tile is a valid attack target (for attack highlighting)
+                is_valid_target = self.show_attack_range and (x, y) in self.valid_targets
+
+                # Tile background color based on terrain and mode
+                # Attack targets (red) take priority over movement (green)
+                if is_valid_target:
+                    # Red tint for valid attack targets
+                    color = (60, 25, 25)  # Red-tinted for attacks
+                elif is_reachable:
                     # Green tint for reachable tiles
                     color = (40, 60, 40)  # Green-tinted for movement
                 elif tile.terrain_type == "full_cover":

@@ -62,8 +62,8 @@ print(f"Path: (0,0) -> (3,3)")
 
 ## Current Development State
 
-**Last Updated**: 2025-12-09 (Session 12)
-**Current Phase**: Phase 1 - MVP (~99% Complete - Popup Notification System Complete, Line of Sight & Combat Resolution Next)
+**Last Updated**: 2025-12-13 (Session 14)
+**Current Phase**: Phase 1 - MVP (✅ COMPLETE - All Core Combat Systems Functional!)
 
 ### ✅ Completed Systems (High-Level Overview)
 
@@ -100,12 +100,16 @@ For detailed information on each system, see the [documentation](#documentation)
 - 📖 *See [docs/06_stat_system.md](docs/06_stat_system.md), [docs/09_equipment_system.md](docs/09_equipment_system.md), and [docs/11_combat_deck_system.md](docs/11_combat_deck_system.md) for details*
 
 #### Combat Mechanics
-- ✅ **Turn order**: Individual unit turns (random order, future: initiative-based)
+- ✅ **Turn order**: Individual unit turns (random order, future: initiative-based), sequential enemy turn execution with visual pauses
 - ✅ **Action points**: 2 actions per turn (Move-Move, Move-Attack, Attack-Attack)
-- ✅ **Movement**: A* pathfinding, flood-fill for range calculation, click-to-move
-- ✅ **Enemy AI**: Cultists move 1 tile to highest health, Hounds move 2 tiles to nearest
-- ✅ **Visual feedback**: Dual highlights (green=current turn, yellow=selected), turn order tracker
-- 📖 *See [docs/07_action_points_system.md](docs/07_action_points_system.md) and [docs/10_enemy_ai_system.md](docs/10_enemy_ai_system.md) for details*
+- ✅ **Movement**: A* pathfinding, flood-fill for range calculation, click-to-move with green tile highlighting
+- ✅ **Line of Sight**: Bresenham's algorithm, full cover blocks LOS, half cover does not
+- ✅ **Attack system**: Range-based targeting with red tile highlighting, hit chance calculation (5-95% clamped)
+- ✅ **Combat resolution**: D100 rolls, combat deck integration, damage application with card modifiers
+- ✅ **Attack feedback**: Damage popups showing card drawn and damage dealt, incapacitation notifications
+- ✅ **Enemy AI**: Full move + attack behavior (Cultists: 1 tile to highest health + attack, Hounds: 2 tiles to nearest + attack)
+- ✅ **Visual feedback**: Dual highlights (green=movement, red=attack targets), turn order tracker, action points display
+- 📖 *See [docs/07_action_points_system.md](docs/07_action_points_system.md), [docs/10_enemy_ai_system.md](docs/10_enemy_ai_system.md), and [docs/12_attack_system.md](docs/12_attack_system.md) for details*
 
 #### Visual Rendering
 - ✅ **Emoji font system**: Platform-specific emoji fonts with ASCII fallback
@@ -114,32 +118,36 @@ For detailed information on each system, see the [documentation](#documentation)
 - ✅ **UI panels**: Investigator tiles (left), unit info (right), action bar (bottom)
 
 #### Documentation
-- ✅ **11 comprehensive guides** covering Pygame basics, architecture, UI, data flow, systems, AI, combat decks
+- ✅ **12 comprehensive guides** covering Pygame basics, architecture, UI, data flow, systems, AI, combat decks, attack system
 - ✅ **Inline code comments** in all source files
-- ✅ **Session archive** documenting development history
+- ✅ **Session archive** documenting development history (Sessions 2-14)
 - 📖 *See [docs/doc_index.md](docs/doc_index.md) for full documentation index*
 
-### 🚧 In Progress
+### 🎯 MVP Complete! Next Steps
 
-**Next Task**: Combat Resolution (Attacks, Hit Chance, Line of Sight)
+**Phase 1 - MVP Status**: ✅ **COMPLETE**
 
-**Files to Create**:
-1. `combat/line_of_sight.py` - Bresenham's line algorithm for LOS
-2. `combat/combat_resolver.py` - Hit chance calculation, damage resolution
+All core tactical combat systems are now functional:
+- ✅ Grid-based tactical movement with A* pathfinding
+- ✅ Turn-based combat with individual unit turns
+- ✅ Attack system with line of sight and range validation
+- ✅ Hit chance calculation with cover and distance modifiers
+- ✅ Combat deck integration (Gloomhaven-style card draws)
+- ✅ Damage application and incapacitation
+- ✅ Enemy AI (full move + attack behavior for Cultists and Hounds)
+- ✅ Visual feedback (popups, highlights, notifications)
 
-**Files to Update**:
-3. `combat/battle_screen.py` - Add attack action implementation
-4. Update unit info display to show weapon stats
+**Remaining Polish Items (Phase 1.5)**:
+- ⏳ Victory/defeat screen with battle summary
+- ⏳ Unit info panel showing weapon stats
+- ⏳ Battle log/history panel
 
-**Current Status**:
-- ✅ Movement system complete with A* pathfinding
-- ✅ Action points system fully implemented (2 actions per turn)
-- ✅ Equipment system complete (weapons, damage, range, modifiers)
-- ✅ Enemy AI movement complete (Cultists 1 tile, Hounds 2 tiles)
-- ✅ Combat deck system complete (20-card decks, ready for attack resolution integration)
-- ⏳ Line of Sight next (Bresenham's algorithm)
-- ⏳ Combat resolution next (hit chance, damage application, deck integration)
-- ⏳ Enemy AI attacks (after combat resolution)
+**Phase 2 - Campaign Layer** (See [PLAN.md](PLAN.md)):
+- Mission system with objectives
+- Investigator roster management
+- Base building and facilities
+- Permadeath and injury system
+- Campaign progression
 
 ---
 
@@ -163,8 +171,10 @@ pygame_tactics_test/
 │   ├── grid.py                # Grid, Tile classes, cover system
 │   ├── pathfinding.py         # A* pathfinding, movement range calculation
 │   ├── terrain_generator.py   # Procedural terrain generation (6 generators)
+│   ├── line_of_sight.py       # Bresenham's LOS algorithm, valid target calculation
+│   ├── combat_resolver.py     # Hit chance, attack resolution, damage application
 │   ├── enemy_ai.py            # Enemy AI (targeting, movement behaviors)
-│   └── battle_screen.py       # Battle UI, rendering, turn system, movement mode
+│   └── battle_screen.py       # Battle UI, rendering, turn system, movement/attack modes
 │
 ├── entities/                  # Entity System
 │   ├── unit.py                # Base Unit (with stat modifiers + equipment)
@@ -189,11 +199,13 @@ pygame_tactics_test/
 │   ├── test_tooltip_integration.py
 │   ├── test_equipment.py
 │   ├── test_enemy_ai.py
-│   └── test_combat_deck.py
+│   ├── test_combat_deck.py
+│   ├── test_combat_resolution.py  # Line of sight, hit chance, attack resolution
+│   └── test_popup.py
 │
 └── docs/                      # Documentation
     ├── doc_index.md           # Documentation index (START HERE)
-    ├── session_archive.md     # Previous development sessions
+    ├── session_archive.md     # Previous development sessions (2-13)
     ├── 01_pygame_fundamentals.md
     ├── 02_architecture_overview.md
     ├── 03_ui_components.md
@@ -204,7 +216,8 @@ pygame_tactics_test/
     ├── 08_terrain_tooltip_system.md
     ├── 09_equipment_system.md
     ├── 10_enemy_ai_system.md
-    └── 11_combat_deck_system.md
+    ├── 11_combat_deck_system.md
+    └── 12_attack_system.md
 ```
 
 ---
@@ -306,11 +319,16 @@ source .venv/bin/activate          # Unnecessary with UV
 - [Tooltips](docs/08_terrain_tooltip_system.md) - Contextual UI
 - [Equipment](docs/09_equipment_system.md) - Weapons and loadouts
 - [Enemy AI](docs/10_enemy_ai_system.md) - AI targeting and movement
+- [Combat Deck](docs/11_combat_deck_system.md) - Gloomhaven-style card draws
+- [Attack System](docs/12_attack_system.md) - LOS, hit chance, combat resolution
 
 ### Development History
 
-**Recent sessions** (Sessions 4-10):
+**Recent sessions** (Sessions 4-13):
 - [Session Archive](docs/session_archive.md) - Detailed development history including:
+  - **Session 13**: Attack System Implementation (LOS, combat resolution, attack UI) ✅ MVP COMPLETE
+  - Session 12: Popup Notification System (turn cards, damage feedback)
+  - Session 11: Combat Deck System (Gloomhaven-style cards)
   - Session 10: Enemy AI System (movement behaviors)
   - Session 9: Equipment & Inventory System
   - Session 8: Terrain Tooltip System
@@ -326,13 +344,23 @@ source .venv/bin/activate          # Unnecessary with UV
 
 **Objective**: Get a single tactical battle playable with core mechanics working.
 
-**Status**: ~99% Complete
+**Status**: ✅ **COMPLETE!**
 
-**Remaining Features**:
-- Line of sight calculation (Bresenham's algorithm)
-- Combat resolution (hit chance, damage)
-- Attack actions (ranged, melee)
-- Enemy AI attacks (movement complete)
+**Core Features Implemented**:
+- ✅ Grid-based tactical movement with A* pathfinding
+- ✅ 2-action turn economy (Move-Move, Move-Attack, Attack-Attack)
+- ✅ Line of sight calculation (Bresenham's algorithm)
+- ✅ Combat resolution (hit chance, D100 rolls, damage)
+- ✅ Attack system with range validation and target highlighting
+- ✅ Combat deck integration (Gloomhaven-style card draws)
+- ✅ Enemy AI movement (Cultists and Hounds with different behaviors)
+- ✅ Visual feedback (popups, highlights, turn notifications)
+
+**Polish Items for Phase 1.5**:
+- ✅ Enemy AI attacks (COMPLETE - enemies now attack after moving)
+- ⏳ Victory/defeat screen with battle summary
+- ⏳ Unit info panel showing weapon stats
+- ⏳ Battle log/history panel
 
 ---
 
@@ -341,12 +369,12 @@ source .venv/bin/activate          # Unnecessary with UV
 - **Future Roadmap**: [PLAN.md](PLAN.md) - Phases 2-5, system designs, long-term vision
 - **Developer Guide**: [CONTRIBUTING.md](CONTRIBUTING.md) - Code style, architecture, workflows
 - **Documentation Index**: [docs/doc_index.md](docs/doc_index.md) - All documentation files
-- **Session History**: [docs/session_archive.md](docs/session_archive.md) - Development sessions 2-10
+- **Session History**: [docs/session_archive.md](docs/session_archive.md) - Development sessions 2-14
 
 ---
 
-**Last Updated**: 2025-12-09 (Session 12 - Popup Notification System)
-**Version**: 2.5.0 (Turn Notifications & Card-Based Damage Popups)
+**Last Updated**: 2025-12-13 (Session 14 - Enemy AI Attacks Implementation)
+**Version**: 3.1.0 (✅ MVP COMPLETE - Full Combat System with Enemy AI)
 **Target Platform**: Windows/Mac/Linux Desktop
 **Engine**: Pygame CE 2.5.x
 **Python**: 3.10+

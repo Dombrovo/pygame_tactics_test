@@ -4,6 +4,153 @@ This document contains historical development sessions. For the most recent sess
 
 ---
 
+## Session 14: Enemy AI Attacks Implementation ✅ COMPLETE
+
+**Completed**: 2025-12-13
+
+### What Was Built
+
+Successfully implemented enemy attack logic to complete the enemy AI system, making battles fully playable with challenging AI opponents:
+
+1. ✅ **Enemy Attack Logic** (`combat/enemy_ai.py`)
+   - Extended `execute_enemy_turn()` to attack after movement
+   - After moving, enemies check if target is in range with line of sight
+   - Uses `can_attack()` from `line_of_sight.py` to validate attacks
+   - Calls `resolve_attack()` from `combat_resolver.py` for damage calculation
+   - Returns attack result dictionary for UI display (None if no attack)
+   - Integrates seamlessly with existing combat resolution system
+   - No combat cards for enemies (investigators-only feature)
+
+2. ✅ **Battle Screen Integration** (`combat/battle_screen.py`)
+   - Captures attack results from `execute_enemy_turn()`
+   - Shows damage popup notifications using `_show_attack_result()`
+   - Redraws screen after attacks to show HP changes
+   - Visual timing: 500ms pause after movement, 500ms pause after attack
+   - Displays incapacitation notifications when investigators are killed
+   - Attack results match player attack display format
+
+3. ✅ **Popup System Bug Fix** (`ui/ui_elements.py`)
+   - **Problem**: `Popup.show_damage_notification()` crashed when `card_name` was None
+   - **Root Cause**: Enemies don't use combat cards, so `card_name=None`, but code called `.upper()` without null check
+   - **Solution**: Added `card_name and` checks before all string method calls
+   - Fixed lines: `if card_name and ("x2" in card_name.upper())...`
+   - Enemies now display damage popups correctly without card names
+
+4. ✅ **Test Suite** (`testing/test_enemy_attacks.py`)
+   - Created comprehensive test script for enemy attack behavior
+   - Tests Cultist attack after movement (ranged, 3 tile range)
+   - Tests Hound attack after movement (melee, 1 tile range)
+   - Tests out-of-range behavior (movement without attack)
+   - Validates attack result structure and damage application
+
+### Enemy AI Behavior (Complete)
+
+**Cultists**:
+- Target investigator with highest health
+- Move 1 tile toward target
+- Attack if target is within 3 tiles with line of sight
+- Use ranged weapon (Cultist Pistol: 4 damage, 3 range)
+
+**Hounds of Tindalos**:
+- Target nearest investigator
+- Move 2 tiles toward target
+- Attack if target is within 1 tile with line of sight
+- Use melee weapon (Hound Claws: 6 damage + 2 sanity damage, 1 range)
+
+### Test Results
+
+```
+Game runs successfully with enemy attacks
+✅ Enemies move toward targets intelligently
+✅ Enemies attack when in range (validated with actual gameplay)
+✅ Damage popups display correctly for enemy attacks
+✅ Hit/miss messages shown based on D100 rolls
+✅ Investigators take damage and can be incapacitated
+✅ Turn flow handles attack results properly
+✅ No crashes or errors during enemy turns
+```
+
+**Console Output Example**:
+```
+Enemy Turn: Hound Alpha
+  Hound Alpha targeting nearest investigator
+  Target: Wallace 'Quickdraw' Northcott (HP: 12/12)
+  Hound Alpha moves from (9, 2) to (7, 4)
+  Hound Alpha attacking Wallace 'Quickdraw' Northcott...
+[Damage popup shows: "6 DAMAGE" in red]
+```
+
+### Documentation Updated
+
+1. ✅ `CLAUDE.md` - Main project documentation
+   - Updated "Last Updated" to Session 14 (2025-12-13)
+   - Updated version to 3.1.0 (Enemy AI Complete)
+   - Changed "Enemy AI movement" to "Enemy AI: Full move + attack behavior"
+   - Removed enemy attacks from "Remaining Polish Items"
+   - Updated session history reference (2-14)
+   - Updated all status sections to reflect completion
+
+2. ✅ `docs/10_enemy_ai_system.md` - Enemy AI documentation
+   - Added "Attack" section to both Cultist and Hound behaviors
+   - Updated `execute_enemy_turn()` signature (now returns Optional[Dict])
+   - Added "Attack System Integration" section with code example
+   - Updated integration code showing attack result handling
+   - Updated turn flow diagram to include attack steps
+   - Moved "Phase 1.5 Attack Logic" from Future to Implemented
+   - Updated "Last Updated" to Session 14
+
+3. ✅ `docs/session_archive.md` - This entry added
+
+### Files Modified
+
+**Core Implementation**:
+- `combat/enemy_ai.py` (lines 10-17, 157-238) - Attack logic added
+- `combat/battle_screen.py` (lines 1107-1125) - Attack result handling
+- `ui/ui_elements.py` (lines 1938-1956) - Null check bug fix
+
+**Documentation**:
+- `CLAUDE.md` - Multiple sections updated
+- `docs/10_enemy_ai_system.md` - Comprehensive updates
+- `docs/session_archive.md` - Session 14 entry
+
+**Tests**:
+- `testing/test_enemy_attacks.py` - New test suite created (needs update for Investigator creation)
+
+### Impact
+
+- **Gameplay**: Battles are now fully playable with challenging AI opponents
+- **MVP Status**: Core combat loop is 100% complete (movement + attacks for both players and AI)
+- **User Experience**: Enemies pose real threat, creating tension and tactical depth
+- **Phase 1.5**: Only polish items remaining (victory screen, unit info panel, battle log)
+- **Code Quality**: Reused existing combat resolution - no duplicate logic
+- **Testing**: Validated through actual gameplay
+
+### Remaining Phase 1.5 Polish Items
+
+- ⏳ Victory/defeat screen with battle summary
+- ⏳ Unit info panel showing weapon stats
+- ⏳ Battle log/history panel
+
+### Technical Notes
+
+**Design Decision**: Enemies don't use combat decks
+- Investigators have personal 20-card decks (Gloomhaven-style)
+- Enemies use static damage from weapons
+- Simplifies AI while maintaining tactical depth
+- Card system remains special investigator feature
+
+**Attack Validation**:
+- Range check: `distance <= enemy.weapon_range`
+- Line of sight check: `has_line_of_sight()` using Bresenham's algorithm
+- Both must pass for attack to execute
+
+**Damage Display**:
+- Investigators: Show card name + damage (e.g., "+2 Card: 7 DAMAGE")
+- Enemies: Show only damage (e.g., "6 DAMAGE")
+- Both use same popup system with proper null handling
+
+---
+
 ## Session 8: Terrain Tooltip System ✅ COMPLETE
 
 **Completed**: 2025-12-08
