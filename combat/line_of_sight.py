@@ -325,6 +325,10 @@ def get_valid_attack_targets(
             if tile.occupied_by.team != target_team:
                 continue
 
+            # Check if unit is incapacitated (can't target dead/unconscious units)
+            if tile.occupied_by.is_incapacitated:
+                continue
+
             # Check if attack is valid
             can_attack_result, _ = can_attack(attacker_pos, (x, y), weapon_range, grid)
             if can_attack_result:

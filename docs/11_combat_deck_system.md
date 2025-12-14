@@ -33,7 +33,7 @@ Cards come in five types, each with different effects:
 
 ```python
 class CardType(Enum):
-    NULL = "null"       # Auto-miss (ignore all modifiers)
+    NULL = "null"       # Deals 0 damage (negates all damage)
     MULTIPLY = "x2"     # Double damage (critical hit)
     PLUS = "+"          # Positive modifier (+2, +1)
     MINUS = "-"         # Negative modifier (-1, -2)
@@ -56,7 +56,7 @@ Card(card_type: CardType, modifier: int = 0, name: str = None)
 Applies the card's modifier to base damage.
 
 **Rules**:
-- **NULL**: Always returns 0 (auto-miss)
+- **NULL**: Always returns 0 (negates all damage, but attack still counts as a hit)
 - **MULTIPLY**: Returns `base_damage * 2`
 - **PLUS/MINUS/ZERO**: Returns `max(0, base_damage + modifier)`
 
@@ -97,7 +97,7 @@ All investigators start with a standard 20-card deck:
 
 | Card | Count | Probability | Effect |
 |------|-------|-------------|--------|
-| NULL | 1 | 5% | Auto-miss (0 damage) |
+| NULL | 1 | 5% | Deals 0 damage (only drawn on hits) |
 | x2 | 1 | 5% | Double damage |
 | +2 | 1 | 5% | +2 damage |
 | +1 | 5 | 25% | +1 damage |
@@ -107,6 +107,11 @@ All investigators start with a standard 20-card deck:
 **Total**: 20 cards
 
 **Expected Value**: Approximately +0.15 modifier on average (slightly positive)
+
+**IMPORTANT CHANGE (Session 16)**: Cards are now only drawn on successful hits (after d100 roll succeeds). This means:
+- NULL cards are rare (5% of hits, not 5% of all attacks)
+- No more wasted good cards (+1/+2/x2) on misses
+- More player-friendly and intuitive gameplay
 
 ### CombatDeck Class
 
@@ -601,6 +606,161 @@ NULL is an auto-miss that ignores hit chance calculation:
 
 ---
 
+## Monster Deck System (Session 15)
+
+**Added**: 2025-12-13 (Session 15)
+**Status**: ✅ Complete
+
+### Overview
+
+In addition to personal investigator decks, the game implements a universal **Monster Modifier Deck** that all enemies share, following the Gloomhaven monster deck design pattern.
+
+**Key Differences from Investigator Decks**:
+- **Shared**: All enemies draw from one universal deck (vs investigators having personal decks)
+- **Faster Cycling**: 4 enemies sharing 1 deck means more frequent reshuffles than 4 investigators with 4 decks
+- **Same Composition**: Uses identical card distribution as standard investigator decks
+
+### create_monster_deck()
+
+Factory function that creates the universal enemy modifier deck:
+
+```python
+from entities.combat_deck import create_monster_deck
+
+# Create at battle start (in BattleScreen.__init__)
+monster_deck = create_monster_deck()
+```
+
+**Deck Composition** (20 cards - same as investigator decks):
+- 1x NULL (auto-miss)
+- 1x x2 (critical hit)
+- 1x +2
+- 5x +1
+- 5x -1
+- 7x +0
+
+**Owner**: Deck is labeled "Monsters" for logging purposes
+
+### Integration with Combat System
+
+The monster deck is passed through the combat resolution chain:
+
+```python
+# In battle_screen.py
+class BattleScreen:
+    def __init__(self, screen):
+        # Create universal monster deck
+        self.monster_deck = create_monster_deck()
+
+    def _try_attack_target(self, target_x, target_y):
+        # Player attack - pass monster_deck (investigator uses personal deck)
+        result = combat_resolver.resolve_attack(
+            self.current_turn_unit,
+            target_unit,
+            self.grid,
+            self.monster_deck  # Passed but not used for investigators
+        )
+```
+
+```python
+# In enemy_ai.py
+def execute_enemy_turn(enemy, investigators, grid, monster_deck):
+    # Enemy attack - uses monster_deck
+    attack_result = resolve_attack(enemy, target, grid, monster_deck)
+```
+
+```python
+# In combat_resolver.py
+def resolve_attack(attacker, target, grid, monster_deck=None):
+    card = None
+
+    # Investigators draw from personal deck
+    if isinstance(attacker, Investigator):
+        card = attacker.draw_combat_card()
+
+    # Enemies draw from universal monster deck
+    elif monster_deck:
+        card = monster_deck.draw()
+
+    # Apply card modifier to damage
+    if card:
+        final_damage = card.apply_to_damage(base_damage)
+```
+
+### Deck Sharing Example
+
+**Scenario**: 4 enemies attack in sequence
+
+```python
+# First enemy attacks
+card1 = monster_deck.draw()  # Draws "+1"
+# Deck: 19 cards in draw pile, 1 in discard
+
+# Second enemy attacks
+card2 = monster_deck.draw()  # Draws "-1"
+# Deck: 18 cards in draw pile, 2 in discard
+
+# Third enemy attacks
+card3 = monster_deck.draw()  # Draws "x2" (crit!)
+# Deck: 17 cards in draw pile, 3 in discard
+
+# Fourth enemy attacks
+card4 = monster_deck.draw()  # Draws "+0"
+# Deck: 16 cards in draw pile, 4 in discard
+
+# After 20 total draws (5 rounds of 4 enemies)
+# Deck automatically reshuffles discard pile
+print("Deck reshuffled!")  # Monsters deck cycling
+```
+
+**Comparison**: Investigator decks reshuffle every 20 individual draws, while monster deck reshuffles every 20 total enemy attacks (5 full rounds with 4 enemies).
+
+### Design Rationale
+
+**Why Same Composition?**:
+- Balance: Enemies and investigators operate on equal footing
+- Simplicity: One set of rules for all combat
+- Dramatic Parity: Both sides can crit and whiff equally
+
+**Why Shared Deck?**:
+- Gloomhaven Design: Monsters share a deck in the board game
+- Faster Cycling: Creates more frequent reshuffles and memorable moments
+- Thematic: Enemies are extensions of cosmic forces (unified behavior)
+- Implementation: Simpler than managing individual enemy decks
+
+### Statistics and Behavior
+
+Monster deck tracks statistics just like investigator decks:
+
+```python
+# Check monster deck stats
+stats = monster_deck.get_statistics()
+print(f"Total enemy draws: {stats['total_draws']}")
+print(f"Enemy crit rate: {stats['crit_rate']:.1%}")
+print(f"Enemy miss rate: {stats['null_rate']:.1%}")
+```
+
+The deck reshuffles automatically when empty:
+
+```python
+# Output when monster deck reshuffles
+[Monsters] Deck reshuffled (20 cards)
+```
+
+### Future Enhancements
+
+**Variant Monster Decks** (Phase 3+):
+- Weak Enemies: More -1 cards, fewer +1 cards
+- Elite Enemies: More +1 cards, extra x2 card
+- Boss Enemies: Custom deck with unique cards
+
+**Cursed/Blessed States** (Phase 4+):
+- Add temporary curse tokens (-2 cards) to monster deck
+- Investigator abilities can "bless" monster deck with extra -1s
+- Gloomhaven-style advantage/disadvantage (draw 2, keep worse/better)
+
+---
+
 ## Future Enhancements
 
 ### Phase 2: Campaign Integration
@@ -747,6 +907,6 @@ def render_deck_info(screen: pygame.Surface, investigator: Investigator):
 
 ---
 
-**Last Updated**: 2025-12-08 (Session 11)
+**Last Updated**: 2025-12-13 (Session 15 - Added Monster Deck System)
 **Author**: Claude Sonnet 4.5
 **Status**: Production Ready

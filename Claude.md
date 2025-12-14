@@ -62,7 +62,7 @@ print(f"Path: (0,0) -> (3,3)")
 
 ## Current Development State
 
-**Last Updated**: 2025-12-13 (Session 14)
+**Last Updated**: 2025-12-13 (Session 16)
 **Current Phase**: Phase 1 - MVP (✅ COMPLETE - All Core Combat Systems Functional!)
 
 ### ✅ Completed Systems (High-Level Overview)
@@ -96,7 +96,7 @@ For detailed information on each system, see the [documentation](#documentation)
 - ✅ **Enemies**: Cultist (ranged), Hound of Tindalos (fast melee)
 - ✅ **Enemy spawning**: Random squad selection (4 squad types: balanced, cultist-only, hound-pack, mixed)
 - ✅ **Equipment system**: 12 weapons with damage, range, attack type, accuracy modifiers
-- ✅ **Combat deck system**: Personal 20-card decks for each investigator (similar to Gloomhaven)
+- ✅ **Combat deck system**: Personal 20-card decks for each investigator + universal monster deck for enemies (Gloomhaven-style)
 - 📖 *See [docs/06_stat_system.md](docs/06_stat_system.md), [docs/09_equipment_system.md](docs/09_equipment_system.md), and [docs/11_combat_deck_system.md](docs/11_combat_deck_system.md) for details*
 
 #### Combat Mechanics
@@ -120,7 +120,7 @@ For detailed information on each system, see the [documentation](#documentation)
 #### Documentation
 - ✅ **12 comprehensive guides** covering Pygame basics, architecture, UI, data flow, systems, AI, combat decks, attack system
 - ✅ **Inline code comments** in all source files
-- ✅ **Session archive** documenting development history (Sessions 2-14)
+- ✅ **Session archive** documenting development history (Sessions 2-15)
 - 📖 *See [docs/doc_index.md](docs/doc_index.md) for full documentation index*
 
 ### 🎯 MVP Complete! Next Steps
@@ -369,12 +369,12 @@ source .venv/bin/activate          # Unnecessary with UV
 - **Future Roadmap**: [PLAN.md](PLAN.md) - Phases 2-5, system designs, long-term vision
 - **Developer Guide**: [CONTRIBUTING.md](CONTRIBUTING.md) - Code style, architecture, workflows
 - **Documentation Index**: [docs/doc_index.md](docs/doc_index.md) - All documentation files
-- **Session History**: [docs/session_archive.md](docs/session_archive.md) - Development sessions 2-14
+- **Session History**: [docs/session_archive.md](docs/session_archive.md) - Development sessions 2-16
 
 ---
 
-**Last Updated**: 2025-12-13 (Session 14 - Enemy AI Attacks Implementation)
-**Version**: 3.1.0 (✅ MVP COMPLETE - Full Combat System with Enemy AI)
+**Last Updated**: 2025-12-13 (Session 16 - Combat Card Drawing Fix)
+**Version**: 3.3.0 (✅ MVP COMPLETE - Cards Only Draw on Hits)
 **Target Platform**: Windows/Mac/Linux Desktop
 **Engine**: Pygame CE 2.5.x
 **Python**: 3.10+

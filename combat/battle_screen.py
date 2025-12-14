@@ -18,6 +18,7 @@ from combat.line_of_sight import get_valid_attack_targets
 from entities.unit import Unit
 from entities.investigator import Investigator, create_test_squad
 from entities.enemy import Enemy, create_test_enemies
+from entities.combat_deck import create_monster_deck, CombatDeck
 from ui.ui_elements import InvestigatorTile, ActionBar, Button, TurnOrderTracker, ActionPointsDisplay, Tooltip, Popup
 
 
@@ -62,6 +63,9 @@ class BattleScreen:
         # Create units
         self.player_units: List[Investigator] = create_test_squad()
         self.enemy_units: List[Enemy] = create_test_enemies()
+
+        # Create universal monster combat deck (shared by all enemies)
+        self.monster_deck: CombatDeck = create_monster_deck()
 
         # Place units on grid
         self._setup_unit_positions()
@@ -622,14 +626,15 @@ class BattleScreen:
         result = combat_resolver.resolve_attack(
             self.current_turn_unit,
             target_unit,
-            self.grid
+            self.grid,
+            self.monster_deck
         )
 
         # Show attack result popup
         self._show_attack_result(result, target_unit)
 
-        # Mark unit as having attacked
-        self.current_turn_unit.has_attacked = True
+        # Consume 1 action point for attack
+        self.current_turn_unit.consume_action_point(1)
 
         # Update UI
         self._update_action_bar()
@@ -1104,7 +1109,7 @@ class BattleScreen:
         # If enemy turn, execute AI
         if self.current_turn_unit.team == "enemy":
             # Execute enemy AI behavior (move + attack)
-            attack_result = enemy_ai.execute_enemy_turn(self.current_turn_unit, self.player_units, self.grid)
+            attack_result = enemy_ai.execute_enemy_turn(self.current_turn_unit, self.player_units, self.grid, self.monster_deck)
 
             # Redraw the screen to show the enemy's movement immediately
             self.draw()

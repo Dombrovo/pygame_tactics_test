@@ -462,3 +462,36 @@ def create_cursed_deck(owner_name: str = "Unknown") -> CombatDeck:
 
     deck.shuffle()
     return deck
+
+
+def create_monster_deck() -> CombatDeck:
+    """
+    Create a universal monster modifier deck (Gloomhaven-style).
+
+    All enemies draw from this shared deck, creating variance in enemy attacks.
+    Uses the same composition as standard investigator decks for balance.
+
+    Composition (20 cards) - Same as investigator decks:
+    - 1x NULL (auto-miss)
+    - 1x x2 (critical hit)
+    - 1x +2
+    - 5x +1
+    - 5x -1
+    - 7x +0
+
+    Total: 20 cards
+
+    All enemies share this single deck, so it will cycle faster and reshuffle
+    more frequently than individual investigator decks.
+
+    Returns:
+        A shuffled monster deck ready for use
+
+    Example:
+        >>> monster_deck = create_monster_deck()
+        >>> card = monster_deck.draw()
+        >>> print(f"Enemy drew: {card.name}")
+    """
+    # Use the same composition as standard investigator decks
+    deck = create_standard_deck("Monsters")
+    return deck

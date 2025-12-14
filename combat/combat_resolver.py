@@ -17,12 +17,15 @@ Integrates with:
 """
 
 import random
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, TYPE_CHECKING
 from combat.grid import Grid
 from combat.line_of_sight import has_line_of_sight, get_cover_between
 from entities.unit import Unit
 from entities.investigator import Investigator
 import config
+
+if TYPE_CHECKING:
+    from entities.combat_deck import CombatDeck
 
 
 def calculate_hit_chance(
@@ -75,7 +78,8 @@ def calculate_hit_chance(
 def resolve_attack(
     attacker: Unit,
     target: Unit,
-    grid: Grid
+    grid: Grid,
+    monster_deck: Optional["CombatDeck"] = None
 ) -> Dict[str, Any]:
     """
     Resolve a complete attack from attacker to target.
@@ -85,15 +89,17 @@ def resolve_attack(
     Process:
     1. Verify attack is valid (range, LOS)
     2. Calculate hit chance
-    3. Roll to hit
-    4. Draw combat card (if investigator)
-    5. Apply damage
-    6. Return detailed results
+    3. Roll to hit (d100 vs hit chance)
+    4. If miss: Return immediately (no card drawn)
+    5. If hit: Draw combat card to modify damage
+    6. Apply card modifier to damage (NULL sets damage to 0)
+    7. Apply damage and return results
 
     Args:
         attacker: The attacking unit
         target: The defending unit
         grid: The battlefield grid (for LOS and distance)
+        monster_deck: Optional universal monster deck (for enemy attacks)
 
     Returns:
         Dictionary with attack results:
@@ -105,7 +111,7 @@ def resolve_attack(
             "roll": int,             # D100 roll (1-100)
             "distance": float,       # Distance in tiles
             "cover": str,            # Cover type
-            "card_drawn": str,       # Card name (if investigator)
+            "card_drawn": str,       # Card name (if using deck)
             "card_is_crit": bool,    # Was it a crit?
             "card_is_null": bool,    # Was it auto-miss?
             "base_damage": int,      # Weapon damage
@@ -173,38 +179,41 @@ def resolve_attack(
         "card_is_null": False,
     }
 
-    # Draw combat card if attacker is an investigator
-    card = None
-    if isinstance(attacker, Investigator):
-        card = attacker.draw_combat_card()
-        if card:
-            result["card_drawn"] = card.name
-            result["card_is_crit"] = card.is_multiply()
-            result["card_is_null"] = card.is_null()
-
-            # Check for auto-miss (NULL card)
-            if card.is_null():
-                result["hit"] = False
-                result["final_damage"] = 0
-                result["damage_dealt"] = 0
-                result["target_killed"] = False
-                return result
-
-    # Check if attack hit
+    # Check if attack hit (d100 roll)
     hit = roll <= hit_chance
 
     if not hit:
-        # Miss - no damage
+        # Miss - no damage, no card drawn
         result["hit"] = False
         result["final_damage"] = 0
         result["damage_dealt"] = 0
         result["target_killed"] = False
         return result
 
+    # Attack hit! Now draw combat card to determine damage modifier
+    # - Investigators draw from their personal deck
+    # - Enemies draw from the universal monster deck (if provided)
+    card = None
+    if isinstance(attacker, Investigator):
+        # Investigator: draw from personal deck
+        card = attacker.draw_combat_card()
+        if card:
+            result["card_drawn"] = card.name
+            result["card_is_crit"] = card.is_multiply()
+            result["card_is_null"] = card.is_null()
+    elif monster_deck:
+        # Enemy: draw from universal monster deck
+        card = monster_deck.draw()
+        if card:
+            result["card_drawn"] = card.name
+            result["card_is_crit"] = card.is_multiply()
+            result["card_is_null"] = card.is_null()
+
     # Hit! Calculate damage
     base_damage = attacker.weapon_damage
 
     # Apply combat card modifier (if card was drawn)
+    # NULL card will set damage to 0 via apply_to_damage()
     if card:
         final_damage = card.apply_to_damage(base_damage)
     else:
@@ -279,8 +288,7 @@ def format_attack_result(
     if result.get("card_drawn"):
         card_name = result["card_drawn"]
         if result.get("card_is_null"):
-            lines.append(f"  Drew {card_name} - AUTO-MISS!")
-            return "\n".join(lines)
+            lines.append(f"  Drew {card_name} - NO DAMAGE!")
         elif result.get("card_is_crit"):
             lines.append(f"  Drew {card_name} - CRITICAL HIT!")
         else:

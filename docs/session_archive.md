@@ -4,6 +4,171 @@ This document contains historical development sessions. For the most recent sess
 
 ---
 
+## Session 15: Bug Fixes & Monster Deck Implementation ✅ COMPLETE
+
+**Completed**: 2025-12-13
+
+### What Was Built
+
+Fixed critical bugs from Session 14 and implemented universal enemy combat deck system for more dynamic enemy attacks:
+
+1. ✅ **Action Point Consumption Bug Fix** (`combat/battle_screen.py`)
+   - **Problem**: Player attacks not consuming action points, allowing infinite attacks
+   - **Root Cause**: `_try_attack_target()` set `has_attacked = True` but never called `consume_action_point(1)`
+   - **Solution**: Added `self.current_turn_unit.consume_action_point(1)` after attack execution (line 632)
+   - **Impact**: Players now correctly consume 1 AP per attack (2-action economy restored)
+   - Matches movement pattern which already consumed action points correctly
+
+2. ✅ **Targeting Dead Enemies Bug Fix** (`combat/line_of_sight.py`)
+   - **Problem**: Players could target and attack incapacitated/dead enemies
+   - **Root Cause**: `get_valid_attack_targets()` only checked team and range/LOS, not incapacitation status
+   - **Solution**: Added incapacitation check before adding to valid targets (line 329):
+     ```python
+     # Check if unit is incapacitated (can't target dead/unconscious units)
+     if tile.occupied_by.is_incapacitated:
+         continue
+     ```
+   - **Impact**: Incapacitated units correctly excluded from targeting, no wasted attacks on corpses
+
+3. ✅ **Universal Monster Combat Deck** (`entities/combat_deck.py`)
+   - Created `create_monster_deck()` factory function (line 467)
+   - Uses same card distribution as standard investigator decks (20 cards):
+     - 1x NULL, 1x x2, 1x +2, 5x +1, 5x -1, 7x +0
+   - All enemies share single universal deck (Gloomhaven-style)
+   - Deck reshuffles when empty (cycles faster than personal decks)
+   - Adds dramatic variance to enemy attacks (crits, misses, modifiers)
+
+4. ✅ **Combat Resolver Integration** (`combat/combat_resolver.py`)
+   - Updated `resolve_attack()` to accept optional `monster_deck` parameter (line 82)
+   - Investigators draw from personal decks (existing behavior)
+   - Enemies draw from universal monster deck (new behavior)
+   - Card logic applies to both: NULL = auto-miss, x2 = double damage, +N/-N modifiers
+   - Returns card_drawn in result dictionary for UI display
+
+5. ✅ **Battle Screen Integration** (`combat/battle_screen.py`)
+   - Created monster deck in `__init__()` using `create_monster_deck()` (line 68)
+   - Pass monster_deck to all `resolve_attack()` calls (player and enemy attacks)
+   - Popup system already handles cards correctly for both teams
+   - Shows card name in damage notifications for both investigators and enemies
+
+6. ✅ **Enemy AI Integration** (`combat/enemy_ai.py`)
+   - Updated `execute_enemy_turn()` to accept optional `monster_deck` parameter (line 164)
+   - Pass monster_deck to `resolve_attack()` when enemies attack (line 237)
+   - TYPE_CHECKING import to avoid circular dependencies
+   - Full integration with existing AI movement and targeting
+
+7. ✅ **Test Suite** (`testing/test_bug_fixes.py`)
+   - Comprehensive test script validating all three fixes
+   - Test 1: Action point consumption (2 → 1 → 0, can't attack at 0)
+   - Test 2: Incapacitated targeting exclusion
+   - Test 3: Monster deck creation and composition verification
+   - Test 4: Combat resolution with monster deck (investigator vs enemy)
+   - All tests passing
+
+### Test Results
+
+```
+[TEST 1] Action Point Consumption
+  [OK] Action point correctly consumed (2 -> 1)
+  [OK] Can attack again with 1 action point remaining
+  [OK] Both action points consumed (1 -> 0)
+  [OK] Cannot attack with 0 action points
+
+[TEST 2] Incapacitated Enemies Excluded from Targeting
+  Initial valid targets: 4
+  Valid targets after incapacitation: 3
+  [OK] Incapacitated enemy excluded from targeting
+  [OK] Position (1, 0) correctly excluded
+
+[TEST 3] Monster Deck Creation and Usage
+  Owner: Monsters
+  Total cards: 20
+  Deck composition: +0(7), +1(5), +2(1), -1(5), NULL(1), x2(1)
+  [OK] Monster deck composition matches standard deck
+  Drew 3 cards successfully: -1, +2, -1
+
+[TEST 4] Combat Resolution with Monster Deck
+  [OK] Investigator drew from personal deck
+  [OK] Enemy drew from monster deck
+```
+
+### Impact on Gameplay
+
+**Before Session 15**:
+- ❌ Players could spam attacks infinitely
+- ❌ Players wasted actions attacking dead enemies
+- ❌ Enemy attacks felt flat (no variance)
+
+**After Session 15**:
+- ✅ 2-action economy enforced (tactical decisions matter)
+- ✅ Auto-targeting excludes dead units (QoL improvement)
+- ✅ Enemy attacks have dramatic moments (crits, whiffs, modifiers)
+- ✅ Combat feels like Gloomhaven (all combatants use modifier decks)
+
+### Architecture Notes
+
+**TYPE_CHECKING Pattern**:
+- Used in `combat_resolver.py` and `enemy_ai.py` to avoid circular imports
+- Import `CombatDeck` only for type hints, not at runtime
+- Clean dependency graph maintained
+
+**Deck Sharing Design**:
+- Monster deck is singleton (created once per battle in BattleScreen)
+- Passed through attack resolution chain (battle_screen → combat_resolver)
+- Faster cycling than personal decks (4 enemies vs 4 investigators sharing 1 deck vs 4 decks)
+
+**Future Enhancement**:
+- Could implement different monster deck compositions (weak/strong variants)
+- Could add "cursed" or "blessed" tokens that affect deck (Gloomhaven advanced rules)
+- Could track monster deck stats for feedback (reshuffle frequency, avg modifier)
+
+### Documentation Updated
+
+1. ✅ `CLAUDE.md` - Main project documentation
+   - Updated "Last Updated" to Session 15 (2025-12-13)
+   - Updated version to 3.2.0 (Bug Fixes & Monster Deck)
+   - Updated Entity System section to mention universal monster deck
+   - Updated session history references (2-15)
+   - Updated Links section
+
+2. ✅ `docs/session_archive.md` - This file
+   - Added Session 15 entry with full implementation details
+   - Documented all bug fixes and new features
+   - Included test results and impact analysis
+
+3. ✅ `docs/11_combat_deck_system.md` - Will be updated next
+   - Will add monster deck section
+   - Will document deck sharing architecture
+   - Will explain investigator vs enemy deck differences
+
+4. ✅ `docs/12_attack_system.md` - Will be updated next
+   - Will mention monster deck usage in combat resolution
+   - Will update combat flow diagram to show deck selection logic
+
+### Files Modified
+
+1. `combat/battle_screen.py` - Action point fix, monster deck creation
+2. `combat/line_of_sight.py` - Incapacitation check in targeting
+3. `entities/combat_deck.py` - `create_monster_deck()` function
+4. `combat/combat_resolver.py` - Monster deck parameter and logic
+5. `combat/enemy_ai.py` - Monster deck parameter passing
+6. `CLAUDE.md` - Updated documentation
+7. `docs/session_archive.md` - Added this session
+
+### Next Steps
+
+**Phase 1.5 Polish** (remaining items):
+- Victory/defeat screen with battle summary
+- Unit info panel showing weapon stats
+- Battle log/history panel
+
+**Phase 2** (see PLAN.md):
+- Campaign layer with mission system
+- Investigator roster management
+- Permadeath and injury system
+
+---
+
 ## Session 14: Enemy AI Attacks Implementation ✅ COMPLETE
 
 **Completed**: 2025-12-13

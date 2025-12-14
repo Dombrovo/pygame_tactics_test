@@ -136,20 +136,30 @@ hit_chance = 75 - (3 × 10) - 20 = 25%
 
 ### Attack Resolution
 
-#### `resolve_attack(attacker, target, grid) -> Dict[str, Any]`
+#### `resolve_attack(attacker, target, grid, monster_deck=None) -> Dict[str, Any]`
 
 Main entry point for combat resolution. Handles complete attack process:
+
+**Parameters**:
+- `attacker` - Unit performing the attack
+- `target` - Unit being attacked
+- `grid` - Battlefield grid (for LOS and distance)
+- `monster_deck` - Optional universal monster deck (Session 15+)
+  - If attacker is Investigator: draws from personal deck (monster_deck ignored)
+  - If attacker is Enemy and monster_deck provided: draws from monster_deck
+  - If monster_deck is None: no card drawn (used before Session 15)
 
 **Process**:
 1. ✅ Validate attack (range, LOS)
 2. ✅ Calculate hit chance
-3. ✅ Roll D100 (1-100)
-4. ✅ Draw combat card (if attacker is investigator)
-5. ✅ Check for auto-miss (NULL card)
-6. ✅ Check if attack hit
-7. ✅ Apply card modifier to damage
-8. ✅ Apply damage to target
-9. ✅ Return detailed results
+3. ✅ Roll D100 (1-100) to determine hit/miss
+4. ✅ If miss: Return immediately (no card drawn, no damage)
+5. ✅ If hit: Draw combat card (investigator: personal deck, enemy: universal monster deck)
+6. ✅ Apply card modifier to damage (NULL card sets damage to 0)
+7. ✅ Apply damage to target
+8. ✅ Return detailed results
+
+**IMPORTANT**: Cards are only drawn on successful hits. This prevents wasting good cards (+1/+2/x2) on misses and makes the system more player-friendly.
 
 **Return Dictionary**:
 ```python
@@ -161,9 +171,9 @@ Main entry point for combat resolution. Handles complete attack process:
     "roll": int,             # D100 roll (1-100)
     "distance": float,       # Distance in tiles
     "cover": str,            # Cover type
-    "card_drawn": str,       # Card name ("+1", "x2", etc.)
-    "card_is_crit": bool,    # Was it a crit?
-    "card_is_null": bool,    # Was it auto-miss?
+    "card_drawn": str,       # Card name ("+1", "x2", etc.) - only present on hits
+    "card_is_crit": bool,    # Was it a crit (x2)?
+    "card_is_null": bool,    # Was it a NULL card (deals 0 damage)?
     "base_damage": int,      # Weapon damage
     "final_damage": int,     # Damage after card modifier
     "damage_dealt": int,     # Actual damage dealt
@@ -174,14 +184,20 @@ Main entry point for combat resolution. Handles complete attack process:
 
 **Usage**:
 ```python
-result = combat_resolver.resolve_attack(investigator, cultist, grid)
+# Investigator attacking (uses personal deck, monster_deck passed but ignored)
+result = combat_resolver.resolve_attack(investigator, cultist, grid, monster_deck)
 
 if result["valid"] and result["hit"]:
     print(f"Hit for {result['damage_dealt']} damage!")
-    print(f"Drew {result['card_drawn']} card")
+    print(f"Drew {result['card_drawn']} card")  # From investigator's personal deck
 
     if result["target_killed"]:
         print(f"{cultist.name} incapacitated!")
+
+# Enemy attacking (uses universal monster_deck)
+result = combat_resolver.resolve_attack(cultist, investigator, grid, monster_deck)
+if result["valid"] and result["hit"]:
+    print(f"Drew {result['card_drawn']} card")  # From universal monster deck
 ```
 
 ### Attack Preview
@@ -791,6 +807,6 @@ if preview["valid"]:
 
 ---
 
-**Last Updated**: 2025-12-09 (Session 13)
+**Last Updated**: 2025-12-13 (Session 15 - Added Monster Deck Integration)
 **Author**: Claude Sonnet 4.5
 **Status**: ✅ Production Ready - MVP Complete

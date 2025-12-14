@@ -7,7 +7,7 @@ Different enemy types have different movement and targeting behaviors:
 - Hounds: Move 2 tiles towards nearest investigator
 """
 
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional, Tuple, Dict, Any, TYPE_CHECKING
 from entities.unit import Unit
 from entities.investigator import Investigator
 from entities.enemy import Enemy, Cultist, HoundOfTindalos
@@ -15,6 +15,9 @@ from combat.grid import Grid
 from combat.pathfinding import find_path
 from combat.line_of_sight import can_attack
 from combat.combat_resolver import resolve_attack
+
+if TYPE_CHECKING:
+    from entities.combat_deck import CombatDeck
 
 
 def find_highest_health_target(investigators: List[Investigator]) -> Optional[Investigator]:
@@ -154,7 +157,12 @@ def calculate_movement_target(enemy: Enemy, target: Unit, grid: Grid, max_tiles:
     return destination
 
 
-def execute_enemy_turn(enemy: Enemy, investigators: List[Investigator], grid: Grid) -> Optional[Dict[str, Any]]:
+def execute_enemy_turn(
+    enemy: Enemy,
+    investigators: List[Investigator],
+    grid: Grid,
+    monster_deck: Optional["CombatDeck"] = None
+) -> Optional[Dict[str, Any]]:
     """
     Execute AI behavior for an enemy unit's turn.
 
@@ -166,6 +174,7 @@ def execute_enemy_turn(enemy: Enemy, investigators: List[Investigator], grid: Gr
         enemy: The enemy unit taking its turn
         investigators: List of all investigator units (for targeting)
         grid: The battlefield grid
+        monster_deck: Optional universal monster deck (for attack resolution)
 
     Returns:
         Dictionary with attack result if attack was made, None otherwise.
@@ -225,7 +234,7 @@ def execute_enemy_turn(enemy: Enemy, investigators: List[Investigator], grid: Gr
     if can_attack_result:
         # Target is in range with LOS - execute attack!
         print(f"  {enemy.name} attacking {target.name}...")
-        attack_result = resolve_attack(enemy, target, grid)
+        attack_result = resolve_attack(enemy, target, grid, monster_deck)
 
         # Add attacker and target info to result for popup display
         attack_result["attacker"] = enemy
