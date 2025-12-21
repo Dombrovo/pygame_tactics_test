@@ -271,6 +271,14 @@ class BattleScreen:
         self.hovered_tile: Optional[Tuple[int, int]] = None  # Track which tile is hovered
 
         # ====================================================================
+        # Grid Portrait Cache
+        # ====================================================================
+        # Cache for scaled portrait images used on grid tiles
+        # Key: unit.name (unique identifier)
+        # Value: pygame.Surface (scaled portrait image)
+        self.grid_portrait_cache: dict = {}
+
+        # ====================================================================
         # Initialize Turn Order Tracker Data
         # ====================================================================
         # Now that turn order is established, populate the tracker
@@ -648,7 +656,9 @@ class BattleScreen:
 
     def _show_attack_result(self, result: dict, target_unit: Unit):
         """
-        Display attack result using popup notification.
+        Display attack result using comprehensive popup notification.
+
+        Shows hit chance, roll, result, card drawn (if applicable), and damage.
 
         Args:
             result: Attack result dictionary from combat_resolver
@@ -656,26 +666,15 @@ class BattleScreen:
         """
         # Check if attack was valid
         if not result.get("valid", False):
+            # Invalid attack (out of range, no LOS, etc.)
+            # Use simple fallback notification
             reason = result.get("reason", "unknown")
-            Popup.show_damage_notification(self.screen, 0, f"MISS - {reason}")
+            Popup.show_damage_notification(self.screen, 0, f"INVALID - {reason}")
             return
 
-        # Check if attack hit
-        if not result.get("hit", False):
-            # Miss
-            card_name = result.get("card_drawn", "")
-            if card_name:
-                Popup.show_damage_notification(self.screen, 0, f"MISS ({card_name})")
-            else:
-                Popup.show_damage_notification(self.screen, 0, "MISS")
-            return
-
-        # Hit! Show damage
-        damage = result.get("damage_dealt", 0)
-        card_name = result.get("card_drawn", "")
-
-        # Show damage popup
-        Popup.show_damage_notification(self.screen, damage, card_name, duration_ms=600)
+        # Show comprehensive attack result popup
+        # This includes: hit chance, roll, HIT/MISS, card (if hit), damage (if hit)
+        Popup.show_attack_result(self.screen, result, duration_ms=1000)
 
         # If target was killed, show additional notification
         if result.get("target_killed", False):
@@ -1035,6 +1034,46 @@ class BattleScreen:
 
         print(f"Selected: {self.selected_unit.name}")
 
+    def _execute_current_enemy_turn(self):
+        """
+        Execute AI for the current enemy unit.
+
+        This method handles the enemy's turn by:
+        1. Executing enemy AI (movement + attack)
+        2. Showing visual feedback (movement, attack results)
+        3. Pausing to let player see what happened
+
+        Does NOT advance to next turn - caller must do that.
+        """
+        if not self.current_turn_unit or self.current_turn_unit.team != "enemy":
+            return
+
+        # Execute enemy AI behavior (move + attack)
+        attack_result = enemy_ai.execute_enemy_turn(
+            self.current_turn_unit,
+            self.player_units,
+            self.grid,
+            self.monster_deck
+        )
+
+        # Redraw the screen to show the enemy's movement immediately
+        self.draw()
+        pygame.display.flip()
+
+        # Pause to let player see the enemy's movement
+        pygame.time.wait(500)  # 500ms pause after movement
+
+        # If enemy attacked, show attack result popup
+        if attack_result:
+            target_unit = attack_result.get("target")
+            if target_unit:
+                self._show_attack_result(attack_result, target_unit)
+                # Redraw to show any changes from attack (HP, incapacitation)
+                self.draw()
+                pygame.display.flip()
+                # Additional pause after attack
+                pygame.time.wait(500)  # 500ms pause after attack
+
     def _advance_turn(self):
         """
         Advance to the next unit in turn order.
@@ -1106,30 +1145,10 @@ class BattleScreen:
         team_str = "Player" if self.current_turn_unit.team == "player" else "Enemy"
         print(f"\n{team_str} Turn: {self.current_turn_unit.name}")
 
-        # If enemy turn, execute AI
+        # If enemy turn, execute AI and recursively advance until player turn
         if self.current_turn_unit.team == "enemy":
-            # Execute enemy AI behavior (move + attack)
-            attack_result = enemy_ai.execute_enemy_turn(self.current_turn_unit, self.player_units, self.grid, self.monster_deck)
-
-            # Redraw the screen to show the enemy's movement immediately
-            self.draw()
-            pygame.display.flip()
-
-            # Pause to let player see the enemy's movement
-            pygame.time.wait(500)  # 500ms pause after movement
-
-            # If enemy attacked, show attack result popup
-            if attack_result:
-                target_unit = attack_result.get("target")
-                if target_unit:
-                    self._show_attack_result(attack_result, target_unit)
-                    # Redraw to show any changes from attack (HP, incapacitation)
-                    self.draw()
-                    pygame.display.flip()
-                    # Additional pause after attack
-                    pygame.time.wait(500)  # 500ms pause after attack
-
-            # After AI completes its actions, advance to next turn
+            self._execute_current_enemy_turn()
+            # After AI completes, advance to next turn (which may be another enemy)
             self._advance_turn()
 
     def _end_turn(self):
@@ -1406,6 +1425,44 @@ class BattleScreen:
                     )
                     self.screen.blit(symbol_surface, symbol_rect)
 
+    def _get_grid_portrait(self, unit) -> Optional[pygame.Surface]:
+        """
+        Load and cache a portrait image for grid display.
+
+        Args:
+            unit: Unit to get portrait for (must have image_path attribute)
+
+        Returns:
+            Scaled pygame.Surface, or None if portrait unavailable
+        """
+        # Only investigators have portraits
+        if not hasattr(unit, 'image_path') or not unit.image_path:
+            return None
+
+        # Check cache first
+        if unit.name in self.grid_portrait_cache:
+            return self.grid_portrait_cache[unit.name]
+
+        # Load and cache the portrait
+        try:
+            from pathlib import Path
+            image_path = Path(unit.image_path)
+            if image_path.exists():
+                # Load image
+                portrait = pygame.image.load(str(image_path))
+                # Scale to fit grid tile (leave room for health bars)
+                # Use 75% of tile size to leave room for health/sanity bars
+                portrait_size = int(config.TILE_SIZE * 0.75)
+                portrait = pygame.transform.scale(portrait, (portrait_size, portrait_size))
+                # Cache it
+                self.grid_portrait_cache[unit.name] = portrait
+                return portrait
+        except Exception as e:
+            print(f"Failed to load grid portrait for {unit.name}: {e}")
+            return None
+
+        return None
+
     def _draw_units(self):
         """Draw all units on the grid."""
         all_units = self.player_units + self.enemy_units
@@ -1417,20 +1474,40 @@ class BattleScreen:
             x, y = unit.position
             pixel_x, pixel_y = self._grid_to_pixel(x, y)
 
-            # Choose color based on team
-            if unit.team == "player":
-                symbol_color = config.COLOR_PLAYER  # Blue for investigators
-            else:
-                symbol_color = config.COLOR_ENEMY   # Red for enemies
+            # Determine if we should draw portrait or symbol
+            use_portrait = (config.GRID_DISPLAY_MODE == "portraits" and
+                          hasattr(unit, 'image_path') and
+                          unit.image_path)
 
-            # Draw unit symbol with team color
-            symbol_surface = self.font_large.render(unit.symbol, True, symbol_color)
-            symbol_rect = symbol_surface.get_rect(
-                center=(pixel_x + config.TILE_SIZE // 2, pixel_y + config.TILE_SIZE // 2)
-            )
-            self.screen.blit(symbol_surface, symbol_rect)
+            if use_portrait:
+                # Portrait mode: Draw character portrait for investigators
+                portrait = self._get_grid_portrait(unit)
+                if portrait:
+                    # Calculate position to center portrait on tile (leave room for health bars at bottom)
+                    portrait_rect = portrait.get_rect()
+                    portrait_x = pixel_x + (config.TILE_SIZE - portrait_rect.width) // 2
+                    portrait_y = pixel_y + 5  # Small offset from top
+                    self.screen.blit(portrait, (portrait_x, portrait_y))
+                else:
+                    # Fallback to symbol if portrait fails to load
+                    use_portrait = False
 
-            # Draw health bar
+            if not use_portrait:
+                # Symbol mode: Draw emoji/ASCII symbol with team color
+                # Choose color based on team
+                if unit.team == "player":
+                    symbol_color = config.COLOR_PLAYER  # Blue for investigators
+                else:
+                    symbol_color = config.COLOR_ENEMY   # Red for enemies
+
+                # Draw unit symbol with team color
+                symbol_surface = self.font_large.render(unit.symbol, True, symbol_color)
+                symbol_rect = symbol_surface.get_rect(
+                    center=(pixel_x + config.TILE_SIZE // 2, pixel_y + config.TILE_SIZE // 2)
+                )
+                self.screen.blit(symbol_surface, symbol_rect)
+
+            # Draw health bar (always drawn regardless of display mode)
             self._draw_health_bar(unit, pixel_x, pixel_y)
 
     def _draw_health_bar(self, unit: Unit, pixel_x: int, pixel_y: int):
@@ -1554,6 +1631,15 @@ class BattleScreen:
         # Now show initial turn notification (after screen is rendered)
         if self.current_turn_unit:
             Popup.show_turn_notification(self.screen, self.current_turn_unit.name, duration_ms=500)
+
+        # If first turn is an enemy turn, execute enemy AI automatically
+        # This handles the case where enemies go first in the turn order
+        if self.current_turn_unit and self.current_turn_unit.team == "enemy":
+            # Execute the first enemy's turn
+            self._execute_current_enemy_turn()
+            # Then advance turns until we reach a player unit
+            # (this will recursively execute any subsequent enemy turns)
+            self._advance_turn()
 
         while self.running:
             self.handle_events()

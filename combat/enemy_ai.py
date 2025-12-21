@@ -3,10 +3,13 @@ Enemy AI system for tactical combat.
 
 This module implements basic AI behaviors for enemy units during their turns.
 Different enemy types have different movement and targeting behaviors:
-- Cultists: Move 1 tile towards investigator with highest health
-- Hounds: Move 2 tiles towards nearest investigator
+- Cultists: Move up to 4 tiles towards investigator with highest health
+- Hounds: Move up to 6 tiles towards nearest investigator
+
+Enemies use their full movement_range stat for aggressive positioning.
 """
 
+import math
 from typing import List, Optional, Tuple, Dict, Any, TYPE_CHECKING
 from entities.unit import Unit
 from entities.investigator import Investigator
@@ -130,16 +133,39 @@ def calculate_movement_target(enemy: Enemy, target: Unit, grid: Grid, max_tiles:
     # path[1] = first step
     # path[2] = second step, etc.
 
-    # Calculate how far along the path to move
-    # We want to move max_tiles steps, but not beyond the end of the path
-    move_distance = min(max_tiles, len(path) - 1)  # -1 because path includes start position
+    # Calculate how far along the path we can move within our movement budget
+    # We need to account for diagonal movement costing sqrt(2) ≈ 1.414
+    accumulated_cost = 0.0
+    destination_index = 0
 
-    if move_distance < 1:
-        # Can't move (already at destination or path too short)
+    for i in range(1, len(path)):
+        # Calculate cost to move from path[i-1] to path[i]
+        prev_x, prev_y = path[i-1]
+        curr_x, curr_y = path[i]
+
+        dx = abs(curr_x - prev_x)
+        dy = abs(curr_y - prev_y)
+
+        # Diagonal movement costs sqrt(2), orthogonal costs 1.0
+        if dx + dy == 2:  # Diagonal
+            step_cost = math.sqrt(2)
+        else:  # Orthogonal
+            step_cost = 1.0
+
+        # Check if we can afford this step
+        if accumulated_cost + step_cost <= max_tiles:
+            accumulated_cost += step_cost
+            destination_index = i
+        else:
+            # Can't afford this step, stop here
+            break
+
+    if destination_index < 1:
+        # Can't move anywhere within budget
         return None
 
-    # Get the destination tile (move_distance steps along the path)
-    destination = path[move_distance]
+    # Get the destination tile (furthest we can move within budget)
+    destination = path[destination_index]
 
     # Verify destination is not occupied (except by the target, which we can't reach anyway)
     dest_tile = grid.get_tile(destination[0], destination[1])
@@ -167,8 +193,12 @@ def execute_enemy_turn(
     Execute AI behavior for an enemy unit's turn.
 
     Different enemy types have different behaviors:
-    - Cultists: Move 1 tile towards investigator with highest health, then attack if in range
-    - Hounds: Move 2 tiles towards nearest investigator, then attack if in range
+    - Cultists: Target investigator with highest health, move up to 4 tiles, attack if in range
+    - Hounds: Target nearest investigator, move up to 6 tiles, attack if in range
+
+    Movement uses the enemy's full movement_range stat:
+    - Cultists: 4 tiles per turn
+    - Hounds: 6 tiles per turn (very fast!)
 
     Args:
         enemy: The enemy unit taking its turn
@@ -186,19 +216,19 @@ def execute_enemy_turn(
 
     # Determine target based on enemy type
     target = None
-    max_movement = 1  # Default movement distance
 
     if isinstance(enemy, Cultist):
-        # Cultists target highest health investigator, move 1 tile
+        # Cultists target highest health investigator
         target = find_highest_health_target(investigators)
-        max_movement = 1
         print(f"  {enemy.name} targeting highest health investigator")
 
     elif isinstance(enemy, HoundOfTindalos):
-        # Hounds target nearest investigator, move 2 tiles
+        # Hounds target nearest investigator
         target = find_nearest_target(enemy, investigators, grid)
-        max_movement = 2
         print(f"  {enemy.name} targeting nearest investigator")
+
+    # Use the enemy's full movement_range stat
+    max_movement = enemy.movement_range
 
     if not target:
         # No valid targets (all investigators incapacitated)

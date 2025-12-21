@@ -36,6 +36,11 @@ SHOW_FPS = False      # Display FPS counter in battles (for debugging/performanc
 # Options: "ascii", "emoji", "image" (image sprites not yet implemented)
 VISUAL_STYLE = "emoji"  # Default to emoji if available
 
+# Grid unit display mode
+# "portraits" = Show character portraits for investigators on grid tiles
+# "symbols" = Show emoji/ASCII symbols for all units
+GRID_DISPLAY_MODE = "portraits"  # Default to portraits for better visual clarity
+
 # ============================================================================
 # GRID SETTINGS (for tactical combat - Phase 1)
 # ============================================================================

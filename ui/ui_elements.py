@@ -1917,54 +1917,155 @@ class Popup:
         popup.show_blocking(screen, duration_ms)
 
     @staticmethod
-    def show_damage_notification(screen: pygame.Surface, damage: int, card_name: str = "", duration_ms: int = 300) -> None:
+    def show_attack_result(screen: pygame.Surface, attack_result: dict, duration_ms: int = 800) -> None:
         """
-        Convenience method to show damage dealt popup (future use).
+        Show comprehensive attack resolution popup with tactical feedback.
+
+        Displays:
+        1. Hit chance percentage
+        2. Actual roll result (HIT/MISS)
+        3. Outcome text with roll details
+        4. If hit: Card drawn from combat deck
+        5. If hit: Damage dealt (health + sanity)
 
         Args:
             screen: Surface to draw on
-            damage: Damage amount
-            card_name: Combat deck card drawn (e.g., "+2", "x2", "NULL", "-1")
-            duration_ms: How long to show (default 300ms)
+            attack_result: Combat resolver result dictionary with keys:
+                - hit_chance: int (percentage)
+                - hit: bool
+                - roll: int (D100 roll)
+                - card_drawn: str (optional)
+                - damage_dealt: int
+                - sanity_damage: int (optional)
+            duration_ms: How long to show (default 800ms)
 
         Example:
-            >>> Popup.show_damage_notification(screen, damage=12, card_name="+2")
-            >>> Popup.show_damage_notification(screen, damage=0, card_name="NULL")
-            >>> Popup.show_damage_notification(screen, damage=16, card_name="x2")
+            >>> result = resolve_attack(attacker, target, grid)
+            >>> Popup.show_attack_result(screen, result)
         """
-        title = f"{damage} DAMAGE"
-        subtitle = f"{card_name} Card" if card_name else ""
+        hit_chance = attack_result.get("hit_chance", 0)
+        hit = attack_result.get("hit", False)
+        roll = attack_result.get("roll", 0)
+        card_drawn = attack_result.get("card_drawn", "")
+        damage = attack_result.get("damage_dealt", 0)
+        sanity_dmg = attack_result.get("sanity_damage", 0)
 
-        # Color based on card type (check if card_name is not None)
-        if card_name and ("x2" in card_name.upper() or "X2" in card_name):
-            # Critical hit - gold/yellow
-            border_color = (255, 200, 0)
-            text_color = (255, 255, 0)
-        elif card_name and "NULL" in card_name.upper():
-            # Auto-miss - dark red
-            border_color = (150, 50, 50)
-            text_color = (200, 100, 100)
-        elif card_name and card_name.startswith("+"):
-            # Positive modifier - bright green
-            border_color = (100, 200, 100)
-            text_color = (150, 255, 150)
-        elif card_name and card_name.startswith("-"):
-            # Negative modifier - orange
-            border_color = (200, 150, 50)
-            text_color = (255, 200, 100)
+        # Build popup content
+        lines = []
+
+        # Line 1: Hit chance
+        lines.append(f"Hit Chance: {hit_chance}%")
+
+        # Line 2: Result
+        if hit:
+            lines.append(f">>> HIT <<<")
+            result_color = (100, 255, 100)  # Green for hit
         else:
-            # Default/+0 - normal red for damage (or enemy attack without card)
-            border_color = (200, 100, 100)
-            text_color = (255, 200, 200)
+            lines.append(f">>> MISS <<<")
+            result_color = (255, 100, 100)  # Red for miss
 
+        # Line 3: Roll details
+        lines.append(f"Roll: {roll}/100")
+
+        # If hit, show card and damage
+        if hit:
+            lines.append("")  # Blank line
+            if card_drawn:
+                lines.append(f"Card: {card_drawn}")
+
+            # Damage line
+            damage_text = f"Damage: {damage} HP"
+            if sanity_dmg > 0:
+                damage_text += f" + {sanity_dmg} SAN"
+            lines.append(damage_text)
+
+        # Determine border color based on result type
+        if not hit:
+            border_color = (150, 50, 50)  # Dark red for miss
+        elif card_drawn and ("x2" in card_drawn.upper() or "X2" in card_drawn):
+            border_color = (255, 200, 0)  # Gold for crit
+        elif card_drawn and "NULL" in card_drawn.upper():
+            border_color = (150, 50, 50)  # Dark red for NULL
+        else:
+            border_color = (100, 200, 100)  # Green for normal hit
+
+        # Create custom popup with multiple text lines
+        popup_width = 600
+        popup_height = 400
+        popup_bg = (15, 15, 25)
+
+        # Create popup surface with alpha
+        popup_surface = pygame.Surface((popup_width, popup_height), pygame.SRCALPHA)
+        popup_surface.fill((*popup_bg, 220))  # Semi-transparent background
+
+        # Draw border
+        pygame.draw.rect(popup_surface, border_color,
+                        pygame.Rect(0, 0, popup_width, popup_height), 4)
+
+        # Render text lines
+        font_large = pygame.font.Font(None, 56)
+        font_medium = pygame.font.Font(None, 44)
+        font_small = pygame.font.Font(None, 36)
+
+        y_offset = 30
+
+        for i, line in enumerate(lines):
+            if i == 0:
+                # Hit chance - medium font, dim color
+                text_surface = font_medium.render(line, True, (200, 200, 220))
+            elif i == 1:
+                # HIT/MISS - large font, result color
+                text_surface = font_large.render(line, True, result_color)
+            elif i == 2:
+                # Roll - medium font, dim color
+                text_surface = font_medium.render(line, True, (200, 200, 220))
+            elif line.startswith("Card:"):
+                # Card info - medium font, yellow
+                text_surface = font_medium.render(line, True, (255, 200, 100))
+            elif line.startswith("Damage:"):
+                # Damage - large font, bright red
+                text_surface = font_large.render(line, True, (255, 100, 100))
+            elif line == "":
+                # Blank line - skip rendering
+                y_offset += 20
+                continue
+            else:
+                # Default - small font
+                text_surface = font_small.render(line, True, (220, 220, 230))
+
+            text_rect = text_surface.get_rect(center=(popup_width // 2, y_offset + text_surface.get_height() // 2))
+            popup_surface.blit(text_surface, text_rect)
+            y_offset += text_surface.get_height() + 10
+
+        # Position at screen center
+        popup_x = (screen.get_width() - popup_width) // 2
+        popup_y = (screen.get_height() - popup_height) // 2
+
+        # Show popup
+        screen.blit(popup_surface, (popup_x, popup_y))
+        pygame.display.flip()
+        pygame.time.wait(duration_ms)
+
+    @staticmethod
+    def show_damage_notification(screen: pygame.Surface, damage: int, card_name: str = "", duration_ms: int = 300) -> None:
+        """
+        DEPRECATED: Use show_attack_result() instead for full tactical feedback.
+
+        Legacy method for simple damage notifications.
+        Kept for backwards compatibility.
+        """
+        # Simple fallback - just show damage
         popup = Popup(
             width=500,
-            height=200,  # Slightly taller for subtitle
+            height=200,
             bg_color=(15, 15, 25),
-            border_color=border_color,
-            text_color=text_color,
+            border_color=(200, 100, 100),
+            text_color=(255, 200, 200),
             font_size=68,
             alpha=220
         )
+
+        title = f"{damage} DAMAGE"
+        subtitle = f"{card_name} Card" if card_name else ""
         popup.set_content(title=title, subtitle=subtitle)
         popup.show_blocking(screen, duration_ms)

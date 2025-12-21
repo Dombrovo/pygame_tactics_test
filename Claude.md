@@ -62,7 +62,7 @@ print(f"Path: (0,0) -> (3,3)")
 
 ## Current Development State
 
-**Last Updated**: 2025-12-13 (Session 16)
+**Last Updated**: 2025-12-15 (Session 17)
 **Current Phase**: Phase 1 - MVP (✅ COMPLETE - All Core Combat Systems Functional!)
 
 ### ✅ Completed Systems (High-Level Overview)
@@ -115,6 +115,10 @@ For detailed information on each system, see the [documentation](#documentation)
 - ✅ **Emoji font system**: Platform-specific emoji fonts with ASCII fallback
 - ✅ **Team color coding**: Blue (player), Red (enemy)
 - ✅ **Character portraits**: Unique image per investigator, no reuse
+- ✅ **Grid display modes**: Toggleable portrait/symbol display on grid tiles
+  - **Portrait mode** (default): Investigators show character portraits on grid, enemies show symbols
+  - **Symbol mode**: All units show emoji/ASCII symbols
+  - Configured via `config.GRID_DISPLAY_MODE`
 - ✅ **UI panels**: Investigator tiles (left), unit info (right), action bar (bottom)
 
 #### Documentation
@@ -324,8 +328,12 @@ source .venv/bin/activate          # Unnecessary with UV
 
 ### Development History
 
-**Recent sessions** (Sessions 4-13):
+**Recent sessions** (Sessions 13-17):
 - [Session Archive](docs/session_archive.md) - Detailed development history including:
+  - **Session 17**: Attack Popup Redesign + Enemy Movement Fixes (comprehensive combat feedback, accurate movement costs)
+  - **Session 16**: Combat Card Drawing Fix (cards only draw on hits)
+  - **Session 15**: Bug Fixes + Monster Deck (action point consumption, targeting dead enemies, universal monster deck)
+  - **Session 14**: Enemy AI Attacks (enemies now attack after moving)
   - **Session 13**: Attack System Implementation (LOS, combat resolution, attack UI) ✅ MVP COMPLETE
   - Session 12: Popup Notification System (turn cards, damage feedback)
   - Session 11: Combat Deck System (Gloomhaven-style cards)
@@ -373,8 +381,22 @@ source .venv/bin/activate          # Unnecessary with UV
 
 ---
 
-**Last Updated**: 2025-12-13 (Session 16 - Combat Card Drawing Fix)
-**Version**: 3.3.0 (✅ MVP COMPLETE - Cards Only Draw on Hits)
+**Last Updated**: 2025-12-15 (Session 17 - Attack Popup Redesign + Movement Fixes)
+**Version**: 3.5.0 (✅ MVP COMPLETE + Enhanced Combat Feedback)
 **Target Platform**: Windows/Mac/Linux Desktop
 **Engine**: Pygame CE 2.5.x
 **Python**: 3.10+
+
+---
+
+## 🚧 Future Improvements Needed
+
+**Movement System Overhaul** (High Priority):
+- Current: Diagonal movement allowed (costs √2 ≈ 1.414 per tile)
+- Issue: Confusing distance calculations, enemies move less far than expected
+- **TODO**: Change to **orthogonal-only movement** (4 directions: ←↑→↓)
+  - Simpler calculations (all moves cost 1.0)
+  - More predictable tactical positioning
+  - Clearer for players to understand movement ranges
+  - Industry standard for grid tactics games (X-COM, Into the Breach, etc.)
+- See: [PLAN.md](PLAN.md) Phase 2 for movement system redesign
